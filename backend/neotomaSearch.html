@@ -1,0 +1,487 @@
+<html>
+	<head>
+		<title>Climate Harvest</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+<style>
+.row{
+	margin-left: 5%;
+	height: 50%;
+}
+	p{
+		padding: 0px;
+		margin: 0px;
+		font-family:"Courier New", Courier, monospace
+		font-size: 10pt;
+	}
+	#map{
+		height: 100%;
+	}
+	tr:nth-child(even) {background-color: #f2f2f2}
+	th, td {
+	    padding: 15px;
+	}
+	#siteTableholder{
+		overflow: auto;
+	}
+	#resultsTableHolder{
+		max-height:50% !important;
+		height: 50% !important;
+		overflow: auto;
+	}
+	#siteTableHolder{
+		max-height: 100%;
+	}
+	#logHolder{
+		max-height: 50%!important;
+		height: 50%;
+		overflow: auto;
+	}
+	#log{
+		width: 100%;
+	}
+	
+	.bar rect {
+  fill: steelblue;
+  shape-rendering: crispEdges;
+}
+
+.bar text {
+  fill: #fff;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+	
+	  
+</style>
+	</head>
+	<body>
+
+	<h1 class='page-header'>
+		Neotoma Query 
+	</h1>
+	<i>Switch to: </i><a href="index">  X/Y Query  </a>|<a href='graph'>  GraphView  </a>
+	<div id='controls1' class='container'>
+		<div class='col-xs-6'>
+		<h2>Site Search Controls</h2>
+		<label for='taxon'>Search Taxa: </label><br/>
+		<input type='text' id='taxaSearch' name='taxon' placeholder='Search Query'/><br />
+		<label for='siteID'>Site ID:</label><br />
+		<input type='text' id='siteIDSearch' name='siteID'/><br />
+		<label for='datasettype'>Dataset Type</label><br />
+		<select name='datasettype' id='datasettype'>
+			<option>All</option>
+			<option>geochronologic</option>
+			<option>loss-on-ignition</option>
+			<option>pollen</option>
+			<option>plant macrofossils</option>
+			<option>vertebrate fauna</option>
+			<option>mollusks</option>
+			<option>pollen surface sample</option>
+		</select> <br />
+		<label for='altmin'>Minimum Altitude: </label><br />
+		<input type='text' id='altmin' name='altmin'/><br />
+		<label for='altmax'>Maximum Altitude: </label><br />
+		<input type='text' id='altmax' name='altmax'/><br />
+		
+		<label for='ageyoung'>Minimum Bounding Age: </label> <br />
+		<input type='number' id='ageyoung' name='ageyoung'/><br />
+		<label for='ageold'>Maximum Bounding Age: </label><br />
+		<input type='number' id='ageold' name='ageold'/><br />
+
+		
+		
+		<h2>Climate Database Controls</h2>
+		<label for='sourceSelect'>Data source: </label><br />
+		<select id='sourceSelect'></select><br />
+		<label for='varSelect'>Variable:</label><br />
+		<select id='varSelect'>
+			<option>All</option>
+		</select><br />
+		<button id='goButton' class='btn btn-primary'>Search</button>
+		</div>
+		
+		<div class='col-xs-6' id='logHolder'>
+			<h4>Application Log</h4>
+			<table id='log'>
+				<th>Timestamp</th><th>Message</th>
+				
+			</table>
+		</div>
+	</div>	<br />
+	<div class='row'>
+		<h2>Neotoma Response</h2>
+		<h4 id='numResultsField'></h4>
+		<div class='col-xs-6' id='siteTableHolder'>
+			<table id='siteTable'>
+				<tr><th>SiteID</th><th>Latitude</th><th>Longitude</th><th>Site Name</th></tr>
+			</table>
+		</div>
+		<div id='map' class='col-xs-6'>
+			
+		</div>
+	</div>
+	<div class='row' >
+		<h2>Climate Extraction Response</h2>
+		<h4 id='numClimateField'>Waiting...</h4>
+		<div id='resultsTableHolder'>
+		<table id='resultsTable'>
+		<tr><th>SiteID</th><th>Site Name</th><th>Data Source </th></th><th>Variable</th><th>Value</th></tr>
+		</table>
+		</div>
+	</div>
+	<div id='graphHolder'></div>
+	</body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+function log(str){
+	var now = new Date()
+	var dateString = now.toUTCString()
+	$("#log").append("<tr><td>" + dateString + "</td><td> "+ str + "</td><tr>")
+	$("#logHolder").animate({scrollTop : $("#logHolder").prop("scrollHeight")}, 500)
+}
+
+function queryClimate(lat, lng, datasource, variable, siteName, siteID, counter, numResults){
+	var startTime = new Date().getTime()
+	payload = {
+		latitude: lat,
+		longitude: lng,
+		datasource: datasource
+	}
+	if (variable != "All"){
+		payload['variable'] = variable
+	}
+	
+	$.ajax({
+		url: "getData",
+		data: payload,
+		error: function(error){
+			console.log("Error.");
+			console.log(error)
+		},
+		success: function(data){
+			
+			result = JSON.parse(data)
+			data = result['data']
+			numSets = data.length
+				s = data;
+				val = s['value']
+				variable = s['variable']
+				//build table row
+				str = "<tr><td>" + siteID + "</td><td>" + siteName + "</td><td>" + datasource + "</td>"
+				str += "<td>" + variable + "</td><td><b>" + val + "</b></td></tr>"
+				$("#resultsTable").append(str)
+				var endTime = new Date().getTime()
+				var elapsed = endTime - startTime
+				log("Climate lookup for " + lat + "N " + lng + "W complete.  Request took " + elapsed + " ms.")
+				$("#numClimateField").text("Working...")
+				//add to memory for later
+				if (climateData[variable] == undefined){
+					climateData[variable] = []
+				}
+				climateData[variable].push(+val)
+				if ((counter + 1) == numResults){
+					finishedClimate = true
+					console.log(climateData)
+					$("#numClimateField").text("Processed all records.")
+			}
+
+		}
+	})
+}
+var counter = 0
+var finishedClimate = false
+var climateData = {}
+
+
+$(document).ready(function(){
+	$.support.cors = true
+	//load sources
+	
+		load1 = false;
+		load2 = false;
+		
+		function checkLoaded(){
+			if ((load1) && (load2)){
+				log("All controls loaded successfully")
+				log("Ready to query for points")
+			}
+		}
+		var start_time = new Date().getTime();
+		$.ajax({
+			//this list the data sources in the database table.
+			url: "getAllSources",
+			beforeSend: function(){
+				log("Requesting data sources from server.")
+			},
+			success: function(result){
+				console.log("Got data sources from server.")
+				result = JSON.parse(result)
+				sources = result['data']; //this is a list of variables
+				i = 0
+				while (i < sources.length){
+					item = sources[i]
+					str = "<option id='source" + i + "'>" + item + "</option>"
+					$("#sourceSelect").append(str)
+					i +=1
+				}
+				log("Got " + sources.length + " data sources.")
+				//elapsed time in ms
+				var request_time = new Date().getTime() - start_time
+				log("Data source request elapsed time " + request_time + " ms" );
+				load2 = true;
+				checkLoaded();
+			},
+			error: function(error){
+				alert('Error!');
+				console.log(error)
+			},
+			type: "POST"
+		})
+		$.ajax({
+			//this list the variable types in the database table.
+			url: "getAllVariables",
+			beforeSend: function(){
+				log("Requesting variable types from server.")
+			},
+			success: function(result){
+				console.log("Got variable types from server.")
+				result = JSON.parse(result)
+				dataTypes = result['data']; //this is a list of variables
+				i = 0
+				while (i < dataTypes.length){
+					item = dataTypes[i]
+					str = "<option id='var" + i + "'>" + item + "</option>"
+					$("#varSelect").append(str)
+					i +=1
+				}
+				log("Got " + dataTypes.length + " variable types.")
+				//elapsed time in ms
+				var request_time = new Date().getTime() - start_time
+				log("Variable request elapsed time " + request_time + " ms" )
+				load1 = true
+				checkLoaded();
+			},
+			error: function(error){
+				alert('Error!');
+				console.log(error)
+			},
+			type: "POST"
+		})
+		
+				//load the map interface
+		var map = L.map('map').setView([37, -118], 5);
+		L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+		    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+		}).addTo(map);
+		log("Map initialized.")
+		
+		
+		//submit button function
+		$("#goButton").click(function(){
+			counter = 0
+			log("Starting query.")
+			//first query neotoma for a list of the sites.
+			//get the input params
+			var submitTime = new Date().getTime();
+			var tQuery = $("#taxaSearch").val();
+			var siteID = $("#siteID").val()
+			var datasetType = $("#datasettype option:selected").text()
+			var altmin = $("#altmin").val()
+			var altmax = $("#altmax").val()
+			var ageyoung = $("#ageyoung").val()
+			var ageold = $("#ageold").val()
+			payload = {}
+			if (tQuery != undefined && tQuery != ""){
+				payload['taxonname'] = tQuery
+			} 
+			if(siteID != "" && siteID != undefined){
+				payload['siteid'] = siteID
+			}
+			if(datasetType != "All"){
+				payload['datasettype'] = datasetType
+			}
+			if(altmin != ""){
+				payload['altmin'] = altmin
+			}
+			if(altmax != ""){
+				payload['altmax'] = altmax
+			}
+			if(ageold!=""){
+				payload['ageold'] = ageold
+			}
+			if(ageyoung != ""){
+				payload["ageyoung"] = ageyoung
+			}
+			if(payload['taxonname'] != "" && (payload['ageold'] != "" || payload['ageyoung'] != "")){
+				payload['ageof'] = 'taxon'
+			}
+			console.log(payload)
+			//climate controls
+			datasourceInput = $("#sourceSelect").val()
+			variableInput = $("#varSelect").val()
+			
+			
+			urlString ="http://api.neotomadb.org/v1/data/datasets";
+			log("Neotoma Query Term is " + tQuery)
+			//do the ajax request
+			
+			$.ajax({
+				url: urlString,
+				beforeSend: function(xhr){
+					log("Sending request to Neotoma Database API")
+					log("Url is: " + urlString) 
+				},
+				crossDomain: true,
+				processData: true,
+				dataType: "jsonp",
+				method: "POST",
+				cache: true,
+				data: payload,
+				error: function(error){
+					console.log("Error!")
+					log("API Error :(")
+					console.log(error)
+				},
+				success: function(result){
+					log("API response returned.");
+					console.log(result)
+					success = result['success']
+					if (success == 0){
+						log("API call failed. Server returned this message: ");
+						message = result['message']
+						log(message)
+					}else{
+						log("API call was successful.")
+						var request_time = new Date().getTime() - submitTime
+						log("Elapsed time: " + request_time + " ms" )
+						//iterate through responses
+						var data = result['data']
+						numResults = data.length
+						$("#numResultsField").text("Found " + numResults + " query results.")
+						for (var i=0; i< numResults; i++){
+							d = data[i];
+							site = d['Site']
+							siteID = site['SiteID']
+							siteName = site['SiteName']
+							latN = site['LatitudeNorth']
+							latS = site['LatitudeSouth']
+							lngW = site['LongitudeWest']
+							lngE = site['LongitudeEast']
+							latAvg = (latN + latS) / 2
+							lngAvg = (lngE + lngW) / 2
+							//assemble table string
+							str = "<tr><td>" + siteID + "</td>"
+							str += "<td>" + Math.round(latAvg * 100) / 100 + "</td>"
+							str += "<td>" + Math.round(lngAvg * 100) / 100 + "</td>"
+							str += "<td>" + siteName + "</td>"
+							//append to table
+							$("#siteTable").append(str)
+							//add to map
+							var marker = L.marker([latAvg, lngAvg]).addTo(map)
+							//lookup in climatedb
+							queryClimate(latAvg, lngAvg, datasourceInput, variableInput, siteName, siteID, counter, numResults)
+							counter += 1
+							
+						}
+					}
+				},
+				complete: function(){
+					log("Request Done.")
+					log('URL was: '  + this.url)
+					console.log(this.url)
+				}
+				
+			})//end ajax
+			
+			//event listener to graph once we have all of the values
+			function graph(){
+				if (finishedClimate){
+					log("Gathered all climate. Starting graphing process.")
+					cursor = 0
+					for (item in climateData){
+						var values = climateData[item]
+						console.log(values)
+						var formatCount = d3.format(",.0f");
+						var margin = {top: 30, right: 30, bottom: 30, left: 30},
+			    			width = 960 - margin.left - margin.right,
+					    	height = 500 - margin.top - margin.bottom;
+					    var x = d3.scale.linear()
+						    .domain([0, d3.max(values)])
+						    .range([0, width]);
+						    
+					var data = d3.layout.histogram()
+					    .bins(x.ticks(10))
+					    (values);
+					var y = d3.scale.linear()
+					    .domain([0, d3.max(data, function(d) { return d.y; })])
+					    .range([height, 0]);
+					var xAxis = d3.svg.axis()
+						    .scale(x)
+						    .orient("bottom");
+						
+						var svg = d3.select("#graphHolder").append("svg")
+						    .attr("width", width + margin.left + margin.right)
+						    .attr("height", height + margin.top + margin.bottom)
+						  .append("g")
+						    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+						  svg.append("text")
+						  	.text("Histogram of " + item )
+						  	.attr('x', 50)
+						  	.attr('y', 50)
+						
+						var bar = svg.selectAll(".bar")
+						    .data(data)
+						  .enter().append("g")
+						    .attr("class", "bar")
+						    .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+						
+						bar.append("rect")
+						    .attr("x", 1)
+						    .attr("width", x(data[0].dx) - 1)
+						    .attr("height", function(d) { return height - y(d.y); });
+						
+						bar.append("text")
+						    .attr("dy", ".75em")
+						    .attr("y", 6)
+						    .attr("x", x(data[0].dx) / 2)
+						    .attr("text-anchor", "middle")
+						    .text(function(d) { return formatCount(d.y); });
+						
+						svg.append("g")
+						    .attr("class", "x axis")
+						    .attr("transform", "translate(0," + height + ")")
+						    .call(xAxis);
+					}
+					
+					
+				}else{
+					setTimeout(graph, 1000);
+				}
+			}
+			graph()
+			
+			
+		})//end submit
+	
+	
+});//end document.ready
+
+
+</script>
+
+</html>
