@@ -83,16 +83,16 @@
 	}
 	
 	.bar rect {
-  fill: steelblue;
-  shape-rendering: crispEdges;
-}
-
-.bar text {
-  fill: #fff;
-}
-.log-med{
-	color: orange;
-}
+	  fill: lightsteelblue;
+	  shape-rendering: crispEdges;
+	}
+	
+	.bar text {
+	  fill: #fff;
+	}
+	.log-med{
+		color: orange;
+	}
 	
 </style>
 	</head>
@@ -141,7 +141,8 @@
 		<div class='row' id='results'>
 			<div id='resultsTableHolder' class='col-xs-12' align='center'>
 				<table id='resultsTable'>
-					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th></th></tr>
+					
+					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th></th><button id='download' class='glyphicon glyphicon-download'></button></tr>
 					
 				</table>
 			</div>
@@ -295,7 +296,7 @@ $(document).ready(function(){
 		log("New request initiated.")
 		var submitStart = new Date().getTime()
 		
-		callID += 1
+		callID  = +callID + 1
 		returnedData[callID] = []
 		log("Call id is now " + callID)
 		//get all the variables from input form
@@ -457,9 +458,14 @@ $(document).ready(function(){
 			console.log("This is returned data:")
 			console.log(returnedData)
 			
-			points = []
+			variable1 = $("#varSelect1").val()
+			variable2 = $("#varSelect2").val()
+		
 			if (variable1 != variable2){
 				//consolidate into single obj for graphing
+				
+				points = []
+				console.log(points)
 				for (callID in returnedData){
 					if (returnedData[callID].length > 0){
 						newObj = {}
@@ -471,11 +477,45 @@ $(document).ready(function(){
 						newObj.callID = var1.callID
 						newObj.source1 = var1.source
 						newObj.source2 = var2.source
-						newObj.variable1 = var1.variable
-						newObj.variable2 = var2.variable
-						newObj.value1 = var1.value
-						newObj.value2 = var2.value
-						points.push(newObj)
+						//make sure the right variable is selected
+						if (variable1 == var1.variable){
+							newObj.variable1 = variable1
+							newObj.value1 = var1.value
+						}else if (variable1 == var2.variable){
+							newObj.variable1 = variable1
+							newObj.value1 = var2.value
+						}
+						
+						
+						if (variable2 == var1.variable){
+							newObj.variable2 = variable2
+							newObj.value2 = var1.value
+						}else if(variable2 == var2.variable){
+							newObj.variable2 = variable2
+							newObj.value2 = var2.value
+						}
+						//see if this is the last in the array --> newest make it a different color
+						console.log("Call ID is " + callID)
+						numReturned = ObjectLength(returnedData)
+						if (callID == numReturned){
+							newObj.opacity = 1
+						}else{
+							newObj.opacity = 0.5
+						}
+						
+						//remove the point if it is not on the current axes
+						if (newObj.variable1 == undefined || newObj.variable2 == undefined){
+							log("Passing point because it is not on the current set of axes.")
+						}else{
+							if ((+var1.value == null || +var1.value == undefined || +var1.value == -1 || +var1.value == NaN ) ||(
+								+var2.value == null || +var2.value == undefined || +var2.value == -1 || +var2.value == NaN)){
+								log("Passing because of NaN value on graph.")
+							}else{
+								points.push(newObj)
+							}
+							
+						}
+						
 					}
 				}
 				
@@ -501,8 +541,13 @@ $(document).ready(function(){
 					    .append("g")
 					        .attr("transform", 
 					              "translate(" + margin.left + "," + margin.top + ")");
-					xscale.domain([0, d3.max(points, function(d){return +d.value1})])
-					yscale.domain([0, d3.max(points, function(d){return +d.value2})])
+					              
+					          
+					              
+					console.log(d3.max(points, function(d){return +d.value1}))
+					console.log(d3.max(points, function(d){return +d.value2}))
+					xscale.domain([0, (1.25 * d3.max(points, function(d){return +d.value1}))])
+					yscale.domain([0, (1.25 * d3.max(points, function(d){return +d.value2}))])
 					
 					    // Add the X Axis
 				    svg.append("g")
@@ -530,14 +575,14 @@ $(document).ready(function(){
 				     
 				     log("Axes drawn.  Adding points to graph.")
 				    
-				    //iterate through the points and add them to the scatter plot
 				    svg.selectAll('dot')
 				    	.data(points)
 				    	.enter().append('circle')
 				    	.attr('r', 5)
-				    	.attr('cx', function(d){return xscale(d.value1)})
-				    	.attr('cy', function(d){return xscale(d.value2)})
+				    	.attr('cx', function(d){return xscale(+d.value1)})
+				    	.attr('cy', function(d){return yscale(+d.value2)})
 				    	.attr('fill', 'red')
+				    	.attr('opacity', function(d){return +d.opacity})
 				    .on("mouseover", function(d) {
 					         tooltip.transition()
 					               .duration(200)
@@ -670,9 +715,53 @@ $(document).ready(function(){
 					      
 		}//end graph performance
 		
+		
+		//download csv on button click
+		$("#download").click(function(){
+			log("Preparing csv file for download.")
+			//get the data into proper format
+			csv = []
+			table = $("#resultsTable")
+			table = table.children()
+			console.log(table)
+			tableRows = $(table[0]).children()
+			for (var i =0; i< tableRows.length; i++){
+				rowData = []
+				row = $(tableRows[i]).children()
+				for (var j =0 ; j<row.length; j++){
+					cellValue = $(row[j]).text()
+					rowData.push(cellValue)
+				}
+				csv.push(rowData)
+			}//end loop
+			//all the data is in the array so now prepare the array
+			var csvContent = "data:text/csv;charset=utf-8,"
+			var csvOut = csv.map(function(d){
+				   return JSON.stringify(d);
+				})
+				.join('\n') 
+				.replace(/(^\[)|(\]$)/mg, ''); // remove opening [ and closing ] brackets from each line 
+			csvContent += csvOut
+			var encodedUri = encodeURI(csvContent);
+			window.open(encodedUri);
+			log("CSV file generated.", "log-success")
+		})
+		
 	}) // end submit
 	
 })//end document.ready
+
+//count objects in object
+
+function ObjectLength( object ) {
+    var length = 0;
+    for( var key in object ) {
+        if( object.hasOwnProperty(key) ) {
+            ++length;
+        }
+    }
+    return length;
+};
 
 
 
