@@ -50,10 +50,14 @@ def ingest(connection, rasterOnDisk, dataSource,  varName, varCode, tileX, tileY
     (out, err) = sql.communicate()
     print "Got SQL from system call. Now inserting."
     cursor.execute(out)
-    print "Executed raster ingest. Tidying up."
-    cursor.execute("VACUUM FULL;")
+    #print "Executed raster ingest. Tidying up."
+    #cursor.execute("VACUUM FULL;")
     connection.commit()
     print "Done."
 
+#ingest(connection, "/Users/scottsfarley/downloads/alt_10m_bil/alt.bil", "WorldClim", "Altitude", -1, 100, 100)
 
-ingest(connection, "/Users/scottsfarley/downloads/tempMean/PRISM_tmean_30yr_normal_4kmM2_annual_asc.asc", "PRISM", "TempAvg", -1, 100, 100)
+for i in range(1, 20):
+    rName = "/Users/scottsfarley/downloads/bio_10m_bil/bio" + str(i) + ".bil"
+    varName = "BioClim" + str(i)
+    ingest(connection, rName, "WorldClim", varName, -1, 100, 100)

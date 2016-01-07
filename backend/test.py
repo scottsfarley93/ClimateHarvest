@@ -88,9 +88,12 @@ def querySources(connection):
     return json.dumps(r)
 
 
-def queryVariables(connection):
+def queryVariables(connection, dataset=""):
     baseSQL = '''SELECT distinct on ("variableName") "variableName"
-        FROM public.vars'''
+        FROM public.vars '''
+    if dataset != "":
+        baseSQL += '''WHERE "dataSource"='''
+        baseSQL += "'" + dataset + "'"
     baseSQL += ''' order by "variableName"'''
     cursor = connection.cursor()
     cursor.execute(baseSQL)
@@ -125,10 +128,12 @@ class API(object):
         return str(p)
 
     @cherrypy.expose
-    def getAllVariables(self):
+    def getAllVariables(self, dataset="ALL"):
         if not conn:
             return False
-        l = queryVariables(conn)
+        if dataset=="ALL":
+            dataset = ""
+        l = queryVariables(conn, dataset)
         return str(l)
 
     @cherrypy.expose

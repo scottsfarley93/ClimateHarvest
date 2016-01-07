@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
 <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
 <style>
+body{
+	margin-left: 5%;
+	margin-right: 5%;
+}
 .row{
 	margin-left: 5%;
 	height: 50%;
@@ -19,38 +23,60 @@
 		font-family:"Courier New", Courier, monospace
 		font-size: 10pt;
 	}
+	#viz{
+		height: 45%;
+		margin-top: 5%;
+	}
 	#map{
 		height: 100%;
 	}
+	
 	tr:nth-child(even) {background-color: #f2f2f2}
 	th, td {
-	    padding: 15px;
+	    padding: 10px;
 	}
-	#siteTableholder{
-		overflow: auto;
-	}
-	#resultsTableHolder{
-		max-height:50% !important;
-		height: 50% !important;
-		overflow: auto;
-	}
-	#siteTableHolder{
-		max-height: 100%;
-	}
-	#logHolder{
-		max-height: 50%!important;
-		height: 50%;
-		overflow: auto;
+	#perfRow{
+		margin-top: 10%;
 	}
 	#log{
 		width: 100%;
+	}
+	table{
+		font: 12px sans-serif;
 	}
 	
 	.bar rect {
   fill: steelblue;
   shape-rendering: crispEdges;
 }
+	.log-med{
+		color: orange;
+	}
+		.tooltip {
+	  position: absolute;
+	  width: 200px;
+	  height: 150px;
+	  pointer-events: none;
+	}
+		.log-warning{
+		color: red
+	}
+	.log-success{
+		color: green
+	}
+	.log-fatal{
+		color: red;
+		background-color: yellow
+	}
+	button{
+		width: 75%;
+		text-align: center;
+		margin-right: 10%;
+	}
 
+#perfRow{
+	margin-top: 10%;
+}
 .bar text {
   fill: #fff;
 }
@@ -59,6 +85,9 @@
   fill: none;
   stroke: #000;
   shape-rendering: crispEdges;
+}
+#goButton{
+	margin-top: 10%;
 }
 
 	
@@ -70,10 +99,10 @@
 	<h1 class='page-header'>
 		Neotoma Query 
 	</h1>
-	<i>Switch to: </i><a href="index">  X/Y Query  </a>|<a href='graph'>  GraphView  </a>
-	<div id='controls1' class='container'>
+	<i>Switch to: </i><a href="index">  X/Y Query  </a>
+	<div id='controls1' class='row'>
 		<div class='col-xs-6'>
-		<h2>Site Search Controls</h2>
+		<h4>Site Search Controls</h4>
 		<label for='taxon'>Search Taxa: </label><br/>
 		<input type='text' id='taxaSearch' name='taxon' placeholder='Search Query'/><br />
 		<label for='siteID'>Site ID:</label><br />
@@ -98,49 +127,87 @@
 		<input type='number' id='ageyoung' name='ageyoung'/><br />
 		<label for='ageold'>Maximum Bounding Age: </label><br />
 		<input type='number' id='ageold' name='ageold'/><br />
-
+		</div>
 		
-		
-		<h2>Climate Database Controls</h2>
-		<label for='sourceSelect'>Data source: </label><br />
-		<select id='sourceSelect'></select><br />
-		<label for='varSelect'>Variable:</label><br />
-		<select id='varSelect'>
-			<option>All</option>
+		<div class='col-xs-6'>
+		<h4>Climate Database Controls</h4>
+		<label for='ageSelect'>Select Age (Years B.P)</label>
+		<select id='ageSelect' name='age-select'>
+			<option>---Select---</option>
+		</select>
+		<div class='col-xs-3'>
+		<h5>Variable 1</h5>
+		<label for='sourceSelect1'>Data source: </label><br />
+		<select id='sourceSelect1'>
+			<option>---Select---</option>
 		</select><br />
-		<button id='goButton' class='btn btn-primary'>Search</button>
+		<label for='varSelect1'>Variable:</label><br />
+		<select id='varSelect1'>
+			
+		</select><br />
+		</div>
+		<div class='col-xs-3'>
+		<h5>Variable 2</h5>
+		<label for='sourceSelect2'>Data source: </label><br />
+		<select id='sourceSelect2'>
+			<option>---Select---</option>
+		</select><br />
+		<label for='varSelect2'>Variable:</label><br />
+		<select id='varSelect2'>
+			
+		</select><br />
+	
+		</div>
+				</div>
+		<div class='col-xs-6'>
+					<button id='goButton' class='btn btn-primary'>Search</button>
+			<button id='reset' class='btn btn-warning'>Reset</button>
 		</div>
 		
-		<div class='col-xs-6' id='logHolder'>
-			<h4>Application Log</h4>
-			<table id='log'>
-				<th>Timestamp</th><th>Message</th>
-				
-			</table>
-		</div>
-	</div>	<br />
-	<div class='row'>
-		<h2>Neotoma Response</h2>
-		<h4 id='numResultsField'></h4>
-		<div class='col-xs-6' id='siteTableHolder'>
-			<table id='siteTable'>
-				<tr><th>SiteID</th><th>Latitude</th><th>Longitude</th><th>Site Name</th></tr>
-			</table>
-		</div>
-		<div id='map' class='col-xs-6'>
+
+
+		<div id='loading'></div>
+		<div id='done' class='log-success'>Query Complete.</div>
+	</div>
+
+	<div class='row' id='viz'>
+		<div id='graph' class='col-xs-6'>
 			
 		</div>
+		<div id='map' class='col-xs-6'></div>
 	</div>
-	<div class='row' >
-		<h2>Climate Extraction Response</h2>
-		<h4 id='numClimateField'>Waiting...</h4>
-		<div id='resultsTableHolder'>
-		<table id='resultsTable'>
-		<tr><th>SiteID</th><th>Site Name</th><th>Data Source </th></th><th>Variable</th><th>Value</th></tr>
-		</table>
+	
+	<div class='row' id='results'>
+		<div id='resultsTableHolder' class='col-xs-8' align='left'>
+			<table id='resultsTable'>
+				<tr><th>SiteID</th><th>Site Name</th><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th><th>Age (Years B.P)</th><button id='download' class='glyphicon glyphicon-download'></button></tr>
+			</table>
 		</div>
 	</div>
-	<div id='graphHolder'></div>
+	
+	<div class='row' id='perfRow'>
+	<div class='col-xs-6' id='logHolder'>
+			<h4>Application Log</h4>
+			<div id='log'>
+				
+			</div>
+		</div>
+	
+	<div class='col-xs-6' id='perfDiv'>
+		<h4>Application Performance</h4>
+		<p>Variable Load Time: <span id='varLoadText' class='timeText'></span> ms</p>
+		<p>Sources Load Time: <span id='sourceLoadText' class='timeText'></span> ms</p>
+		<p>Neotoma Response Time: <span id='neotomaLoadText' class='timeText'></span> ms</p>
+		<p>Number of Neotoma Responses: <span id='neotomaNumResults' ></span></p>
+		<p>Average roundtrip to Neotoma: <span id='neotomaAvgResponse' class='timeText'></span> ms</p>
+		<p>Last total climate roundtrip time: <span id='totalResponseText' class='timeText'></span> ms</p>
+		<p>Min Climate Roundtrip: <span id='minResponseText' class='timeText'></span> ms</p>
+		<p>Max Climate Roundtrip: <span id='maxResponseText' class='timeText'></span> ms</p>
+		<p>Mean Climate Roundtrip: <span id='meanResponseText' class='timeText'></span> ms</p>
+		<h5>Histogram of Climate Request Roundtrip Times</h5>
+		<div id='perfGraph'></div>
+	</div>
+	</div>
 	</body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 <!-- Latest compiled and minified JavaScript -->
@@ -148,153 +215,193 @@
 <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
 <script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script>
-function log(str){
+function log(str, c){
 	var now = new Date()
 	var dateString = now.toUTCString()
-	$("#log").append("<tr><td>" + dateString + "</td><td> "+ str + "</td><tr>")
-	$("#logHolder").animate({scrollTop : $("#logHolder").prop("scrollHeight")}, 500)
+	$("#log").append("<p class='" + c + "'>" + dateString + ": " + str + "</p>")
+	//$("#logHolder").animate({scrollTop : $("#logHolder").prop("scrollHeight")}, 500)
 }
 
-function queryClimate(lat, lng, datasource, variable, siteName, siteID, counter, numResults){
-	var startTime = new Date().getTime()
-	payload = {
-		latitude: lat,
-		longitude: lng,
-		datasource: datasource
-	}
-	if (variable != "All"){
-		payload['variable'] = variable
-	}
-	
-	$.ajax({
-		url: "getData",
-		data: payload,
-		error: function(error){
-			console.log("Error.");
-			console.log(error)
-		},
-		success: function(data){
-			
-			result = JSON.parse(data)
-			data = result['data']
-			numSets = data.length
-				s = data;
-				val = s['value']
-				variable = s['variable']
-				//build table row
-				str = "<tr><td>" + siteID + "</td><td>" + siteName + "</td><td>" + datasource + "</td>"
-				str += "<td>" + variable + "</td><td><b>" + val + "</b></td></tr>"
-				$("#resultsTable").append(str)
-				var endTime = new Date().getTime()
-				var elapsed = endTime - startTime
-				log("Climate lookup for " + lat + "N " + lng + "W complete.  Request took " + elapsed + " ms.")
-				$("#numClimateField").text("Working...")
-				//add to memory for later
-				if (climateData[variable] == undefined){
-					climateData[variable] = []
-				}
-				climateData[variable].push(+val)
-				if ((counter + 1) == numResults){
-					finishedClimate = true
-					console.log(climateData)
-					$("#numClimateField").text("Processed all records.")
-			}
+// add the tooltip area to the webpage
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0)
+    .style('background-color', 'white')
 
-		}
-	})
-}
-var counter = 0
-var finishedClimate = false
-var climateData = {}
+
+responseTimes = {}
+responseTimes['climateLoad'] = []
+
+markers = []
+popups = []
+
+var getClimateStartTime = 0;
+
+var neotomaData = [];//make global --> {siteName, siteID, lat, lng}
+var climateData = {}; //array of objects with fields for table indexed by callID
+var callID = 0
+var currentNumResponses = 0
 
 
 $(document).ready(function(){
-	$.support.cors = true
-	//load sources
+	var pageStart = new Date().getTime()
+	$("#done").hide()
+	//load the variables and sources with ajax
+	var startTime = new Date().getTime();
+
 	
-		load1 = false;
-		load2 = false;
-		
-		function checkLoaded(){
-			if ((load1) && (load2)){
-				log("All controls loaded successfully")
-				log("Ready to query for points")
+	$.ajax({
+		url: "getAllSources",
+		dataType: "json",
+		beforeSend:function(){
+			log("Requesting data sources from server.")
+		},
+		error: function(error){
+			log("Error getting data sources from server.  Check console.", "log-fatal")
+			console.log(error)
+		},
+		success: function(result){
+			var requestEnd = new Date().getTime()
+			var requestTime = requestEnd - startTime
+			if (result.success){
+				var data = result['data']
+				var numSources = data.length
+				log("Got " + numSources + " data sources from server.  Request took " + requestTime + " ms.", 'log-success')
+				responseTimes['sourcesLoad'] = requestTime
+				for (var i=0; i< numSources; i++){
+					$("#sourceSelect1").append("<option>" + data[i] + "</option>")
+					$("#sourceSelect2").append("<option>" + data[i] + "</option>")
+				}
+				$("#sourceLoadText").text(requestTime)
+			}else{
+				log("Error getting data sources from server.  Server says: " + data.message, "log-warning")
 			}
 		}
-		var start_time = new Date().getTime();
-		$.ajax({
-			//this list the data sources in the database table.
-			url: "getAllSources",
-			beforeSend: function(){
-				log("Requesting data sources from server.")
-			},
-			success: function(result){
-				console.log("Got data sources from server.")
-				result = JSON.parse(result)
-				sources = result['data']; //this is a list of variables
-				i = 0
-				while (i < sources.length){
-					item = sources[i]
-					str = "<option id='source" + i + "'>" + item + "</option>"
-					$("#sourceSelect").append(str)
-					i +=1
-				}
-				log("Got " + sources.length + " data sources.")
-				//elapsed time in ms
-				var request_time = new Date().getTime() - start_time
-				log("Data source request elapsed time " + request_time + " ms" );
-				load2 = true;
-				checkLoaded();
-			},
-			error: function(error){
-				alert('Error!');
-				console.log(error)
-			},
-			type: "POST"
-		})
-		$.ajax({
-			//this list the variable types in the database table.
+	})//end source request ajax
+	
+		
+	$("#varSelect1").hide()
+	$("#varSelect2").hide()
+	$("#sourceSelect1").change(function(){
+		loadVars1()
+		$("#varSelect1").empty()
+		$("#varSelect1").show()
+	})
+	$("#sourceSelect2").change(function(){
+		loadVars2()
+		$("#varSelect2").empty()
+		$("#varSelect2").show()
+	})
+	
+	function loadVars1(){
+		datasource = $("#sourceSelect1 option:selected").text()
+			$.ajax({
 			url: "getAllVariables",
-			beforeSend: function(){
-				log("Requesting variable types from server.")
+			data: {
+				dataset: datasource
 			},
-			success: function(result){
-				console.log("Got variable types from server.")
-				result = JSON.parse(result)
-				dataTypes = result['data']; //this is a list of variables
-				i = 0
-				while (i < dataTypes.length){
-					item = dataTypes[i]
-					str = "<option id='var" + i + "'>" + item + "</option>"
-					$("#varSelect").append(str)
-					i +=1
-				}
-				log("Got " + dataTypes.length + " variable types.")
-				//elapsed time in ms
-				var request_time = new Date().getTime() - start_time
-				log("Variable request elapsed time " + request_time + " ms" )
-				load1 = true
-				checkLoaded();
+			beforeSend: function(){
+				log("Getting climate variables from server.")
 			},
 			error: function(error){
-				alert('Error!');
+				log("Fatal error getting climate variables.  Check console.", "log-fatal")
 				console.log(error)
 			},
-			type: "POST"
-		})
-		
-				//load the map interface
-		var map = L.map('map').setView([37, -118], 5);
-		L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-		    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-		}).addTo(map);
-		log("Map initialized.")
-		
-		
-		//submit button function
-		$("#goButton").click(function(){
-			counter = 0
+			dataType: "json",
+			success: function(result){
+				if (result['success']){
+					//time the query
+					var requestEnd = new Date().getTime()
+					var requestTime = requestEnd - pageStart
+					responseTimes['varLoad'] = requestTime
+					$("#varResponseText").text(requestTime)
+					if (requestTime < 40){
+						$("#varResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#varResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#varResponseText").addClass('log-warning')
+					}
+					data = result['data'];
+					numVars = data.length
+					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
+					for (var v = 0; v< numVars; v++){
+						varname = data[v]
+						$("#varSelect1").append("<option>" + varname + "</option>")
+					}
+				}else{
+					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
+					console.log(data)
+				}
+			}
+		}) // end variables ajax
+	}//end load vars1
+	
+		function loadVars2(){
+		datasource = $("#sourceSelect2 option:selected").text()
+			$.ajax({
+			url: "getAllVariables",
+			data: {
+				dataset: datasource
+			},
+			beforeSend: function(){
+				log("Getting climate variables from server.")
+			},
+			error: function(error){
+				log("Fatal error getting climate variables.  Check console.", "log-fatal")
+				console.log(error)
+			},
+			dataType: "json",
+			success: function(result){
+				if (result['success']){
+					//time the query
+					var requestEnd = new Date().getTime()
+					var requestTime = requestEnd - pageStart
+					responseTimes['varLoad'] = requestTime
+					$("#varResponseText").text(requestTime)
+					if (requestTime < 40){
+						$("#varResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#varResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#varResponseText").addClass('log-warning')
+					}
+					data = result['data'];
+					numVars = data.length
+					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
+					for (var v = 0; v< numVars; v++){
+						varname = data[v]
+						$("#varSelect2").append("<option>" + varname + "</option>")
+					}
+				}else{
+					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
+					console.log(data)
+				}
+			}
+		}) // end variables ajax
+	}//end load vars2
+	
+	//initialize map
+	var map = L.map('map').setView([39.5, -98.5], 3);
+	//add the tiles
+	L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+	    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+	}).addTo(map);
+	log("Map initialized.", "log-success")
+	
+	//submit function
+	$("#goButton").click(function(){
+		callID = +callID + 1
+		log("This is call ID " + callID)
+		climateData[callID] = []
+		$("#loading").show()
+		$("#done").hide()
+		$("#loading").text("Loading results from neotoma...")
+		//get the results from neotoma first
 			log("Starting query.")
+			log("First looking for results in Neotoma DB")
 			//first query neotoma for a list of the sites.
 			//get the input params
 			var submitTime = new Date().getTime();
@@ -306,6 +413,7 @@ $(document).ready(function(){
 			var ageyoung = $("#ageyoung").val()
 			var ageold = $("#ageold").val()
 			payload = {}
+			//build the query payload
 			if (tQuery != undefined && tQuery != ""){
 				payload['taxonname'] = tQuery
 			} 
@@ -330,21 +438,17 @@ $(document).ready(function(){
 			if(payload['taxonname'] != "" && (payload['ageold'] != "" || payload['ageyoung'] != "")){
 				payload['ageof'] = 'taxon'
 			}
-			console.log(payload)
 			//climate controls
-			datasourceInput = $("#sourceSelect").val()
-			variableInput = $("#varSelect").val()
+			datasourceInput1 = $("#sourceSelect1").val()
+			variableInput1 = $("#varSelect1").val()
+			datasourceInput2 = $("#sourceSelect2").val()
+			variableInput2 = $("#varSelect2").val()
 			
-			
-			urlString ="http://api.neotomadb.org/v1/data/datasets";
-			log("Neotoma Query Term is " + tQuery)
-			//do the ajax request
-			
+			endpoint ="http://api.neotomadb.org/v1/data/datasets";
 			$.ajax({
-				url: urlString,
+				url: endpoint,
 				beforeSend: function(xhr){
 					log("Sending request to Neotoma Database API")
-					log("Url is: " + urlString) 
 				},
 				crossDomain: true,
 				processData: true,
@@ -353,26 +457,32 @@ $(document).ready(function(){
 				cache: true,
 				data: payload,
 				error: function(error){
-					console.log("Error!")
-					log("API Error :(")
+					log("API Error.  Check console.", "log-fatal")
 					console.log(error)
 				},
 				success: function(result){
-					log("API response returned.");
+					log("API response returned.  Checking success..");
 					console.log(result)
 					success = result['success']
 					if (success == 0){
-						log("API call failed. Server returned this message: ");
+						log("API call failed. Server returned this message: ", "log-warning");
 						message = result['message']
 						log(message)
 					}else{
-						log("API call was successful.")
-						var request_time = new Date().getTime() - submitTime
-						log("Elapsed time: " + request_time + " ms" )
+						var requestTime = new Date().getTime() - submitTime
+						log("API call successful.  Elapsed time: " + requestTime + " ms", "log-success" )
+						responseTimes['neotomaLoad'] = requestTime
 						//iterate through responses
 						var data = result['data']
 						numResults = data.length
+						currentNumResponses = numResults
+						neotomaData = [] // empty
 						$("#numResultsField").text("Found " + numResults + " query results.")
+						console.log("Next call ID: " + callID)
+						if (numResults > 1000){
+							log("Mapping disabled due to large neotoma response.", 'log-fatal')
+							$("#map").hide()
+						}
 						for (var i=0; i< numResults; i++){
 							d = data[i];
 							site = d['Site']
@@ -382,7 +492,8 @@ $(document).ready(function(){
 							latS = site['LatitudeSouth']
 							lngW = site['LongitudeWest']
 							lngE = site['LongitudeEast']
-							latAvg = (latN + latS) / 2
+							//simple average of site bounding box
+							latAvg = (latN + latS) / 2 
 							lngAvg = (lngE + lngW) / 2
 							//assemble table string
 							str = "<tr><td>" + siteID + "</td>"
@@ -392,94 +503,486 @@ $(document).ready(function(){
 							//append to table
 							$("#siteTable").append(str)
 							//add to map
-							var marker = L.marker([latAvg, lngAvg]).addTo(map)
-							//lookup in climatedb
-							queryClimate(latAvg, lngAvg, datasourceInput, variableInput, siteName, siteID, counter, numResults)
-							counter += 1
-							
+							if (numResults < 2000){
+								var marker = L.marker([latAvg, lngAvg]).addTo(map)
+								popupText = "<p>Site Name: " + siteName + "</p><i>SiteID: " + siteID + "</i>"
+								popupText += "<p>Latitude: " + latAvg + "N</p>"
+								popupText += "<p>Longitude: " + lngAvg + "W</p>" 
+								marker.bindPopup(popupText)
+								neotomaData.push({siteName: siteName, siteID: siteID, latitude: latAvg, longitude: lngAvg, var1: variableInput1,
+									var2:variableInput2, source1: datasourceInput1, source2: datasourceInput2})
+								markers.push(marker)
+								}
 						}
-					}
+						getClimateStartTime = new Date().getTime()
+						getClimateForAllPoints(callID)
+						$("#loading").text("Loading climate...")
+						$("#neotomaLoadText").text(requestTime)
+						var avgTime = Math.round(((requestTime / numResults) * 100) / 100)
+						$("#neotomaNumResults").text(numResults)
+						$("#neotomaAvgResponse").text(avgTime)
+					} //end for loop
 				},
 				complete: function(){
-					log("Request Done.")
-					log('URL was: '  + this.url)
+					log('API call finished.  URL was: '  + this.url)
 					console.log(this.url)
 				}
 				
 			})//end ajax
 			
-			//event listener to graph once we have all of the values
-			function graph(){
-				if (finishedClimate){
-					log("Gathered all climate. Starting graphing process.")
-					cursor = 0
-					for (item in climateData){
-						var values = climateData[item]
-						console.log(values)
-						var formatCount = d3.format(",.0f");
-						var margin = {top: 30, right: 30, bottom: 30, left: 30},
-			    			width = 960 - margin.left - margin.right,
-					    	height = 500 - margin.top - margin.bottom;
-					    var x = d3.scale.linear()
-						    .domain([0, d3.max(values)])
-						    .range([0, width]);
-						    
-					var data = d3.layout.histogram()
-					    .bins(x.ticks(10))
-					    (values);
-					var y = d3.scale.linear()
-					    .domain([0, d3.max(data, function(d) { return d.y; })])
-					    .range([height, 0]);
-					var xAxis = d3.svg.axis()
-						    .scale(x)
-						    .orient("bottom");
-						
-						var svg = d3.select("#graphHolder").append("svg")
-						    .attr("width", width + margin.left + margin.right)
-						    .attr("height", height + margin.top + margin.bottom)
-						  .append("g")
-						    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-						  svg.append("text")
-						  	.text("Histogram of " + item )
-						  	.attr('x', 50)
-						  	.attr('y', 50)
-						
-						var bar = svg.selectAll(".bar")
-						    .data(data)
-						  .enter().append("g")
-						    .attr("class", "bar")
-						    .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
-						
-						bar.append("rect")
-						    .attr("x", 1)
-						    .attr("width", x(data[0].dx) - 1)
-						    .attr("height", function(d) { return height - y(d.y); });
-						
-						bar.append("text")
-						    .attr("dy", ".75em")
-						    .attr("y", 6)
-						    .attr("x", x(data[0].dx) / 2)
-						    .attr("text-anchor", "middle")
-						    .text(function(d) { return formatCount(d.y); });
-						
-						svg.append("g")
-						    .attr("class", "x axis")
-						    .attr("transform", "translate(0," + height + ")")
-						    .call(xAxis);
+			function getClimateForAllPoints(callID){
+				
+				//iterate
+				log("CallID is " + callID)
+				numPoints = neotomaData.length
+				for (var i=0; i<numPoints; i++ ){
+					var iterStart = new Date().getTime()
+					var item = neotomaData[i]
+					var lat = item.latitude
+					var lng = item.longitude
+					var source1 = item.source1
+					var source2 = item.source2
+					var var1 = item.var1
+					var var2 = item.var2
+					var siteName = item.siteName
+					var siteID = item.siteID
+					var callID = callID
+					var pointID = i 
+					//do two ajax calls one for each var/source pair
+					$.ajax({
+						url: "getData",
+						dataType: "json",
+						async: false,
+						data: {
+							latitude: lat,
+							longitude: lng,
+							variable: var1,
+							datasource: source1
+						},
+						error: function(error){
+							console.log(error)
+						},
+						success: function(result){
+							var responseEnd = new Date().getTime()
+							var responseTime = responseEnd - iterStart
+							responseTimes['climateLoad'].push(responseTime)
+							var responseData = result['data']
+							var value = responseData['value']
+							newObj = {
+								latitude: lat,
+								longitude: lng,
+								source: source1,
+								variable: var1,
+								siteName: siteName,
+								siteID: siteID,
+								callID: callID,
+								value: value,
+								pointID: pointID
+							}
+							climateData[callID].push(newObj)
+						}
+					}) //end ajax 1
+					
+					$.ajax({
+						url: "getData",
+						dataType: "json",
+						data: {
+							latitude: lat,
+							longitude: lng,
+							variable: var2,
+							datasource: source2
+						},
+						async: false,
+						error: function(error){
+							console.log(error)
+						},
+						success: function(result){
+							var responseEnd = new Date().getTime()
+							var responseTime = responseEnd - iterStart
+							responseTimes['climateLoad'].push(responseTime)
+							var responseData = result['data']
+							var value = responseData['value']
+							newObj = {
+								latitude: lat,
+								longitude: lng,
+								source: source2,
+								variable: var2,
+								siteName: siteName,
+								siteID: siteID,
+								callID: callID,
+								value: value,
+								pointID: pointID
+							}
+							climateData[callID].push(newObj)
+						}
+					}) //end ajax 2
+				} // end of for loop
+				checkComplete()
+			} // end getClimateForAllPoints
+			
+			function checkComplete(){
+				//checks if all of the climate has been gotten, otherwise waits.
+				//if complete --> dispatch to viz functions
+				console.log("Num Responses: " + currentNumResponses)
+				var keys = [];
+				for(var k in climateData) keys.push(k);
+				var lastCallID = d3.max(keys)
+				console.log(climateData)
+				if (climateData[lastCallID].length  == currentNumResponses * 2){ //*2 because of two variables for each response
+					var getClimateEndTime = new Date().getTime()
+					var getClimateTotalTime = getClimateEndTime - getClimateStartTime
+					$("#loading").addClass('log-success')
+					responseTimes['totalClimateLoad'] = getClimateTotalTime
+					$("#totalResponseText").text(getClimateTotalTime)
+					//do viz
+					log("Got all climate points.", "log-success")
+					listPoints(climateData[lastCallID])
+					log("Listing complete.", 'log-success')
+					graphPoints(lastCallID)
+					$("#loading").hide()
+					log("Graphing complete.", "log-success")
+					$("#done").show()
+					graphPerformance()
+					log("Performance check complete.", "log-success")
+				}else{
+					setTimeout(checkComplete, 100)
+					console.log("Waiting...")
+				}
+			} // end checkComplete function
+			
+			function listPoints(climateData){
+				for (var i=0; i< climateData.length; i++){
+					var climatePoint = climateData[i]
+					str = "<tr class='resultRow'><td>" + climatePoint.siteID + "</td><td>" + climatePoint.siteName + " </td><td>" + climatePoint.latitude
+					str += "</td><td>" + climatePoint.longitude + " </td><td>" + climatePoint.source + "</td><td>" + climatePoint.variable + "</td><td>" + climatePoint.value + "</td></tr>"
+					$("#resultsTable").append(str)
+				}
+			};
+			function graphPoints(){
+				$("#graph").empty()
+			var margin = {top: 20, right: 20, bottom: 30, left: 40},
+			
+		    width = $("#graph").width() - margin.left - margin.right,
+		    height = $("#viz").height() - margin.top - margin.bottom;
+			
+			//find the points that we want to graph in case there are multiple axes in memory
+			points = []
+			
+			
+			variable1 = $("#varSelect1").val()
+			variable2 = $("#varSelect2").val()
+			
+			console.log(variable1 + ' ' + variable2 )
+		
+			if (variable1 != variable2){
+				//consolidate into single obj for graphing
+				
+				points = []
+				numReturned = ObjectLength(climateData)
+				for (var call = 1; call<=numReturned; call++){
+					callData = climateData[call]
+					if (callData != undefined){
+						callData = callData.sort(sortByID)
+						for (var i=0; i< callData.length - 1; i = i + 2){//-1 so that we can do +1 index
+							var point1 = callData[i]
+							var point2 = callData[i + 1]
+							newObj = {
+								latitude : point1.latitude,
+								longitude : point1.longitude,
+								callID : point1.call,
+								source1: point1.source,
+								source2: point2.source,
+								siteName: point1.siteName,
+								siteID: point1.siteID
+							}
+							if (variable1 == point1.variable){
+								newObj.variable1 = variable1
+								newObj.value1 = point1.value
+							}else if(variable1 == point2.variable){
+								newObj.variable1 = variable1
+								newObj.value1 = point2.value
+							}
+							if (variable2 == point1.variable){
+								newObj.variable2 = variable2
+								newObj.value2 = point1.value
+							}else if(variable2 == point2.variable){
+								newObj.variable2 = variable2
+								newObj.value2 = point2.value
+							}
+							
+							//see if this is the last in the array --> newest make it a different color
+							if (call == numReturned){
+								newObj.opacity = 1
+							}else{
+								newObj.opacity = 0.25
+							}
+							
+							//remove the point if it is not on the current axes
+							if (newObj.variable1 == undefined || newObj.variable2 == undefined){
+								log("Passing point because it is not on the current set of axes.")
+							}else{
+								if ((+point1.value == null || +point1.value == undefined || +point1.value == -1 || +point1.value == NaN ) ||(
+									+point2.value == null || +point2.value == undefined || +point2.value == -1 || +point2.value == NaN)){
+									console.log("Passing because of NaN value on graph.")
+								}else{
+									points.push(newObj)
+								}
+								
+							}
+						}//end call loop
 					}
 					
+				}//end process points
+					console.log(points)
+				//check length to make sure that we can make a scatter plot
+					//scaling
+					xscale = d3.scale.linear().range([0, width])
+					yscale = d3.scale.linear().range([height, 0])
+					var xAxis = d3.svg.axis()
+						.scale(xscale)
+						.orient("bottom")
+						.ticks(5)
+					var yAxis = d3.svg.axis()
+						.scale(yscale)
+						.orient("left")
+						.ticks(5)
 					
-				}else{
-					setTimeout(graph, 1000);
-				}
+					//empty the current graph holder
+					$("#graph").empty()
+					var svg = d3.select("#graph")
+						.append("svg")
+					        .attr("width", width + margin.left + margin.right)
+					        .attr("height", height + margin.top + margin.bottom)
+					    .append("g")
+					        .attr("transform", 
+					              "translate(" + margin.left + "," + margin.top + ")");
+					              
+					          
+					              
+					minX = d3.min([0, d3.min(points, function(d){return +d.value1})])
+					minY = d3.min([0, d3.min(points, function(d){return +d.value2})])
+					console.log(d3.max(points, function(d){return +d.value2}))
+					xscale.domain([minX, (1.25 * d3.max(points, function(d){return +d.value1}))])
+					yscale.domain([minY, (1.25 * d3.max(points, function(d){return +d.value2}))])
+					
+					    // Add the X Axis
+				    svg.append("g")
+				        .attr("class", "x axis")
+				        .attr("transform", "translate(0," + height + ")")
+				        .call(xAxis)
+				         .append("text")
+					      .attr("class", "label")
+					      .attr("x", width)
+					      .attr("y", -6)
+					      .style("text-anchor", "end")
+					      .text(variable1);
+				        
+				       // Add the Y Axis
+				    svg.append("g")
+				        .attr("class", "y axis")
+				        .call(yAxis)
+				        .append("text")
+					      .attr("class", "label")
+					      .attr("transform", "rotate(-90)")
+					      .attr("y", 6)
+					      .attr("dy", ".71em")
+					      .style("text-anchor", "end")
+					      .text(variable2);
+				     
+				     log("Axes drawn.  Adding points to graph.")
+				    
+				    svg.selectAll('dot')
+				    	.data(points)
+				    	.enter().append('circle')
+				    	.attr('r', 5)
+				    	.attr('cx', function(d){return xscale(+d.value1)})
+				    	.attr('cy', function(d){return yscale(+d.value2)})
+				    	.attr('fill', 'red')
+				    	.attr('opacity', function(d){
+				    		return +d.opacity
+				    		})
+				    .on("mouseover", function(d) {
+				    	console.log(d)
+					         tooltip.transition()
+					               .duration(200)
+					               .style("opacity", 1);
+					          tooltip.html("<p>Site Name: " + d.siteName + "</p>" + "Site ID: " + d.siteID + "</p><p>Latitude: " + d.latitude + "N</p><p>Longitude: " + d.longitude + "W</p><p>" + d.variable1 +": " + d.value1 + "</p>"
+					          	+ "<p>"  + d.variable2 + ": " + d.value2 + "</p>")
+					               .style("left", (d3.event.pageX + 5) + "px")
+					               .style("top", (d3.event.pageY - 28) + "px");
+					      })
+					      .on("mouseout", function(d) {
+					          tooltip.transition()
+					               .duration(500)
+					               .style("opacity", 0);
+					      });
+				    		
+
+			}else{
+				$("#graph").append("<h5>Please select two different variables to enable graphing.</h5> ")
 			}
-			graph()
-			
-			
-		})//end submit
+					
+					
+			} //end graphing
+		
+		
+	})//end submit function
 	
-	
+			//download csv on button click
+		$("#download").click(function(){
+			log("Preparing csv file for download.")
+			//get the data into proper format
+			csv = []
+			table = $("#resultsTable")
+			table = table.children()
+			console.log(table)
+			tableRows = $(table[0]).children()
+			for (var i =0; i< tableRows.length; i++){
+				rowData = []
+				row = $(tableRows[i]).children()
+				for (var j =0 ; j<row.length; j++){
+					cellValue = $(row[j]).text()
+					rowData.push(cellValue)
+				}
+				csv.push(rowData)
+			}//end loop
+			//all the data is in the array so now prepare the array
+			var csvContent = "data:text/csv;charset=utf-8,"
+			var csvOut = csv.map(function(d){
+				   return JSON.stringify(d);
+				})
+				.join('\n') 
+				.replace(/(^\[)|(\]$)/mg, ''); // remove opening [ and closing ] brackets from each line 
+			csvContent += csvOut
+			var encodedUri = encodeURI(csvContent);
+			window.open(encodedUri);
+			log("CSV file generated.", "log-success")
+		}) // end download
+
+		function graphPerformance(){
+			
+			//put in the text first
+			var minTime = d3.min(responseTimes['climateLoad'])
+			var maxTime = d3.max(responseTimes['climateLoad'])
+			var meanTime = d3.mean(responseTimes['climateLoad'])
+			meanTime = Math.round(meanTime * 100) / 100
+			$("#minResponseText").text(minTime)
+			$("#maxResponseText").text(maxTime)
+			$("#meanResponseText").text(meanTime)
+			//format text
+			$(".timeText").each(function(){
+				$(this).removeClass() // remove all classes
+				var val = $(this).text()
+				if (val < 30){
+					$(this).addClass('log-success')
+				}else if (val < 40){
+					$(this).addClass('log-med')
+				}else {
+					$(this).addClass('log-warning')
+				}
+			})
+			//do the graphing
+			
+			log("Graphing performance.")
+			$("#perfGraph").empty()
+			console.log(responseTimes)
+			values = []
+			for (var i=0; i<responseTimes.climateLoad.length; i++){
+				item = +responseTimes.climateLoad[i]
+				values.push(item)
+			}
+						// A formatter for counts.
+			var formatCount = d3.format(",.0f");
+			
+			var margin = {top: 10, right: 30, bottom: 50, left: 30},
+			    width = $("#perfGraph").width() - margin.left - margin.right,
+			    height = 300 - margin.top - margin.bottom;
+			
+			var x = d3.scale.linear()
+			    .domain([0, d3.max(values)])
+			    .range([0, width]);
+			
+			// Generate a histogram using twenty uniformly-spaced bins.
+			var data = d3.layout.histogram()
+			    .bins(x.ticks(20))
+			    (values);
+			
+			var y = d3.scale.linear()
+			    .domain([0, d3.max(data, function(d) { return d.y; })])
+			    .range([height, 0]);
+			
+			var xAxis = d3.svg.axis()
+			    .scale(x)
+			    .orient("bottom");
+			
+			var svg = d3.select("#perfGraph").append("svg")
+			    .attr("width", width + margin.left + margin.right)
+			    .attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+			    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+			
+			var bar = svg.selectAll(".bar")
+			    .data(data)
+			  .enter().append("g")
+			    .attr("class", "bar")
+			    .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+			
+			bar.append("rect")
+			    .attr("x", 1)
+			    .attr("width", x(data[0].dx) - 1)
+			    .attr("height", function(d) { return height - y(d.y); });
+			
+			bar.append("text")
+			    .attr("dy", ".75em")
+			    .attr("y", 6)
+			    .attr("x", x(data[0].dx) / 2)
+			    .attr("text-anchor", "middle")
+			    .text(function(d) { return formatCount(d.y); });
+			
+			svg.append("g")
+			    .attr("class", "x axis")
+			    .attr("transform", "translate(0," + height + ")")
+			    .call(xAxis)
+			    .append("text")
+					      .attr("class", "label")
+					      .attr("x", width)
+					      .attr("y", 30)
+					      .style("text-anchor", "end")
+					      .text("Response Time (ms)");
+		}
+		
+		$("#reset").click(function(){
+			$(".resultRow").remove()
+			$("#graph").empty()
+			for (var i =0; i < markers.length; i++){
+				map.removeLayer(markers[i])
+			}
+				neotomaData = [];
+				for (var member in climateData) delete climateData[member];
+				climateData[callID] = []
+		})
+		
+
 });//end document.ready
+
+function ObjectLength( object ) {
+    var length = 0;
+    for( var key in object ) {
+        if( object.hasOwnProperty(key) ) {
+            ++length;
+        }
+    }
+    return length;
+};
+//This will sort your array
+function sortByID(a, b){
+  var aName = +a.pointID
+  var bName = +b.pointID
+  return ((aName < bName) ? -1 : ((aName > bName) ? 1 : 0));
+}
+
+
+
 
 
 </script>

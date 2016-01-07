@@ -98,7 +98,7 @@
 	</head>
 	<body>
 		<h1 class='page-header'>Point Climate Extraction</h1>
-		<i>Switch to: </i><a href="neotomaQuery">  Neotoma Query  </a>|<a href='graph'>  GraphView  </a>
+		<i>Switch to: </i><a href="neotomaQuery">  Neotoma Query  </a>
 		
 		<div class='row' id='controls1'>
 			
@@ -112,9 +112,15 @@
 			</div>
 		
 		<div class='col-xs-4'>
+					<label for='ageSelect'>Select Age (Years B.P)</label>
+		<select id='ageSelect' name='age-select'>
+			<option>---Select---</option>
+		</select>
 			<h3>Select Variable 1</h3>
 				<label for='sourceSelect1'>Select Data Source: </label><br />
-				<select id='sourceSelect1' name='sourceSelect1' class='sourceSelect'></select><br />
+				<select id='sourceSelect1' name='sourceSelect1' class='sourceSelect'>
+					<option>---Select---</option>
+				</select><br />
 
 				<label for='varSelect1'>Select Climatic Variable: </label><br />
 				<select id='varSelect1' name='varSelect1' class='varSelect'></select><br />
@@ -122,7 +128,9 @@
 		<div class='col-xs-4'>
 			<h3>Select Variable 2</h3>
 				<label for='sourceSelect2'>Select Data Source: </label><br />
-				<select id='sourceSelect2' name='sourceSelect2' class='sourceSelect'></select><br />
+				<select id='sourceSelect2' name='sourceSelect2' class='sourceSelect'>
+					<option>---Select---</option>
+				</select><br />
 
 				<label for='varSelect2'>Select Climatic Variable: </label><br />
 				<select id='varSelect2' name='varSelect2' class='varSelect'></select><br />
@@ -130,7 +138,10 @@
 		</div>
 
 		<div id='controls3' class='row' align="left">
-			<button id='submit' class='btn btn-large btn-primary'>Get Data</button>
+		<div class='col-xs-6'>
+					<button id='submit' class='btn btn-primary'>Search</button>
+			<button id='reset' class='btn btn-warning'>Reset</button>
+		</div>
 		</div>
 		
 		<div class='row' id='viz'>
@@ -142,7 +153,7 @@
 			<div id='resultsTableHolder' class='col-xs-12' align='center'>
 				<table id='resultsTable'>
 					
-					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th></th><button id='download' class='glyphicon glyphicon-download'></button></tr>
+					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th><th>Age (Years B.P)</th></tr><button id='download' class='glyphicon glyphicon-download'></button></tr>
 					
 				</table>
 			</div>
@@ -155,7 +166,6 @@
 		</div>
 		<div class='col-xs-4' id='perfDiv'>
 			<h4>Application Performance</h4>
-			<p>Variable Response Time: <span id='varResponseText'></span> ms</p>
 			<p>Data Source Response Time: <span id='sourceResponseText'></span> ms</p>
 			<p>Query Min Response Time: <span id='qminText'></span> ms</p>
 			<p>Query Max Response Time: <span id='qmaxText'></span> ms</p>
@@ -213,47 +223,8 @@ $(document).ready(function(){
 	}).addTo(map);
 	
 	//populate the drop down menus
-	// //get variables
-	$.ajax({
-		url: "getAllVariables",
-		beforeSend: function(){
-			log("Getting climate variables from server.")
-		},
-		error: function(error){
-			log("Fatal error getting climate variables.  Check console.", "log-fatal")
-			console.log(error)
-		},
-		dataType: "json",
-		success: function(result){
-			if (result['success']){
-				//time the query
-				var requestEnd = new Date().getTime()
-				var requestTime = requestEnd - pageStart
-				responseTimes['varLoad'] = requestTime
-				$("#varResponseText").text(requestTime)
-				if (requestTime < 40){
-					$("#varResponseText").addClass('log-success')
-				}
-				else if (requestTime > 39 && requestTime < 50){
-					$("#varResponseText").addClass('log-med')
-				}else if (requestTime > 49){
-					$("#varResponseText").addClass('log-warning')
-				}
-				data = result['data'];
-				numVars = data.length
-				log("Got " + numVars + " climate variables.  Request took " + requestTime + " ms.", 'log-success')
-				for (var v = 0; v< numVars; v++){
-					varname = data[v]
-					$(".varSelect").append("<option>" + varname + "</option>")
-				}
-			}else{
-				log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
-				console.log(data)
-			}
-		}
-	}) // end variables ajax
 	
-	//get data sources
+		//get data sources
 	$.ajax({
 		url: "getAllSources",
 		beforeSend: function(){
@@ -291,6 +262,115 @@ $(document).ready(function(){
 			}
 		}
 	}) // end source ajax
+	
+	
+	// //get variables corresponding with the selected datasources
+	
+	$("#varSelect1").hide()
+	$("#varSelect2").hide()
+	$("#sourceSelect1").change(function(){
+		loadVars1()
+		$("#varSelect1").empty()
+		$("#varSelect1").show()
+	})
+	$("#sourceSelect2").change(function(){
+		loadVars2()
+		$("#varSelect2").empty()
+		$("#varSelect2").show()
+	})
+	
+	function loadVars1(){
+		datasource = $("#sourceSelect1 option:selected").text()
+			$.ajax({
+			url: "getAllVariables",
+			data: {
+				dataset: datasource
+			},
+			beforeSend: function(){
+				log("Getting climate variables from server.")
+			},
+			error: function(error){
+				log("Fatal error getting climate variables.  Check console.", "log-fatal")
+				console.log(error)
+			},
+			dataType: "json",
+			success: function(result){
+				if (result['success']){
+					//time the query
+					var requestEnd = new Date().getTime()
+					var requestTime = requestEnd - pageStart
+					responseTimes['varLoad'] = requestTime
+					$("#varResponseText").text(requestTime)
+					if (requestTime < 40){
+						$("#varResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#varResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#varResponseText").addClass('log-warning')
+					}
+					data = result['data'];
+					numVars = data.length
+					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
+					for (var v = 0; v< numVars; v++){
+						varname = data[v]
+						$("#varSelect1").append("<option>" + varname + "</option>")
+					}
+				}else{
+					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
+					console.log(data)
+				}
+			}
+		}) // end variables ajax
+	}//end load vars1
+	
+		function loadVars2(){
+		datasource = $("#sourceSelect2 option:selected").text()
+			$.ajax({
+			url: "getAllVariables",
+			data: {
+				dataset: datasource
+			},
+			beforeSend: function(){
+				log("Getting climate variables from server.")
+			},
+			error: function(error){
+				log("Fatal error getting climate variables.  Check console.", "log-fatal")
+				console.log(error)
+			},
+			dataType: "json",
+			success: function(result){
+				if (result['success']){
+					//time the query
+					var requestEnd = new Date().getTime()
+					var requestTime = requestEnd - pageStart
+					responseTimes['varLoad'] = requestTime
+					$("#varResponseText").text(requestTime)
+					if (requestTime < 40){
+						$("#varResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#varResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#varResponseText").addClass('log-warning')
+					}
+					data = result['data'];
+					numVars = data.length
+					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
+					for (var v = 0; v< numVars; v++){
+						varname = data[v]
+						$("#varSelect2").append("<option>" + varname + "</option>")
+					}
+				}else{
+					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
+					console.log(data)
+				}
+			}
+		}) // end variables ajax
+	}//end load vars2
+
+	
+
 	
 	$("#submit").click(function(){
 		log("New request initiated.")
@@ -393,7 +473,7 @@ $(document).ready(function(){
 					console.log(data)
 					log("Got climate data for payload #2. Request took " + requestTime + " ms.", "log-success")
 					//put it in the table
-					str = "<tr><td>" + latitude + "</td><td>" + longitude + "</td><td>" + data['dataSource']
+					str = "<tr class='resultRow'><td>" + latitude + "</td><td>" + longitude + "</td><td>" + data['dataSource']
 					str += "</td><td>" + data['variable'] + "</td><td><b>" 
 					str += +data['value'] + "<b></td></tr>"
 					$("#resultsTable").append(str)
@@ -748,6 +828,15 @@ $(document).ready(function(){
 		})
 		
 	}) // end submit
+	
+	$("#reset").click(function(){
+			$(".resultRow").remove()
+			$("#graph").empty()
+			for (var i =0; i < markers.length; i++){
+				map.removeLayer(markers[i])
+			}
+				returnedData = {};
+		})
 	
 })//end document.ready
 
