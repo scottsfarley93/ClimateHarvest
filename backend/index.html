@@ -61,6 +61,9 @@
 	#map{
 		height: 100%;
 	}
+	tr{
+		font:10pt "Courier New", Courier, monospace;
+	}
 	
 	
 	
@@ -98,21 +101,32 @@
 	</head>
 	<body>
 		<h1 class='page-header'>Point Climate Extraction</h1>
-		<i>Switch to: </i><a href="neotomaQuery">  Neotoma Query  </a>
+		<i>Switch to: </i><a href="neotomaQuery">  Neotoma Query  </a> | <a href='map'>Point & Click</a>
 		
 		<div class='row' id='controls1'>
 			
 		<div class='col-xs-4'>
 			<h3>Point Location</h3>
+			<h5>X / Y Query</h5>
 				<label for='latitude'>Longitude: </label><br />
 				<input type='number' value='0.000' step='0.001' name='longitude' id='longitude'/>
 				<br />
 				<label for='latitude'>Latitude: </label><br />
-				<input type='number' value='0.000' step='0.001' name='latitude' id='latitude'/>
+				<input type='number' value='0.000' step='0.001' name='latitude' id='latitude'/><br />
+			<p>---OR---</p>
+			<h5>Upload CSV</h5>	
+			<input type='file' id='csvFile' enctype="multipart/form-data" method='post' action='processCSV'>
+			<p>---OR---</p>
+			<h5>Upload a Polygon Shapefile</h5>
+			<input type='file' id='shapefile' enctype="multipart/form-data" method='post' action='processShapefile'>
 			</div>
 		
 		<div class='col-xs-4'>
 			<h3>Select Variable 1</h3>
+			<label for='timeSelect1'>Select Timeslice:</label><br />
+			<select id='timeSelect1' class='timeSelect'>
+				<option>Modern</option>
+			</select> <br />
 				<label for='sourceSelect1'>Select Data Source: </label><br />
 				<select id='sourceSelect1' name='sourceSelect1' class='sourceSelect'>
 					<option>---Select---</option>
@@ -123,6 +137,10 @@
 			</div>
 		<div class='col-xs-4'>
 			<h3>Select Variable 2</h3>
+			<label for='timeSelect2'>Select Timeslice:</label><br />
+			<select id='timeSelect2' class='timeSelect'>
+				<option>Modern</option>
+			</select><br />
 				<label for='sourceSelect2'>Select Data Source: </label><br />
 				<select id='sourceSelect2' name='sourceSelect2' class='sourceSelect'>
 					<option>---Select---</option>
@@ -135,6 +153,8 @@
 
 		<div id='controls3' class='row' align="left">
 		<div class='col-xs-6'>
+							<label for='colorChoice'>Select Dot Color</label>
+				<input id='colorChoice' type='color' value='#FF8040'><br />
 					<button id='submit' class='btn btn-primary'>Search</button>
 			<button id='reset' class='btn btn-warning'>Reset</button>
 		</div>
@@ -149,7 +169,7 @@
 			<div id='resultsTableHolder' class='col-xs-12' align='center'>
 				<table id='resultsTable'>
 					
-					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th></tr><button id='download' class='glyphicon glyphicon-download'></button></tr>
+					<tr><th>Latitude</th><th>Longitude</th><th>Data Source</th><th>Variable</th><th>Value</th><th>Years B.P.</th></tr><button id='download' class='glyphicon glyphicon-download'></button></tr>
 					
 				</table>
 			</div>
@@ -158,11 +178,13 @@
 
 		<div class='row'>
 		<div class='col-xs-8' id='log'>
-			<h4>Application Log</h4>
+			<h4>Application Log</h4><button id='toggleLog' class='btn'>Hide</button>
 		</div>
 		<div class='col-xs-4' id='perfDiv'>
 			<h4>Application Performance</h4>
-			<p>Data Source Response Time: <span id='sourceResponseText'></span> ms</p>
+			<p>Timeslice Query Response Time: <span id='timeResponseText'></span> ms</p>
+			<p>Data Source Query Response Time: <span id='sourceResponseText'></span> ms</p>
+			<p>Variables Query Response Time: <span id='varResponseText'></span> ms</p>
 			<p>Query Min Response Time: <span id='qminText'></span> ms</p>
 			<p>Query Max Response Time: <span id='qmaxText'></span> ms</p>
 			<p>Query Mean Response Time: <span id='qmeanText'></span> ms</p>
@@ -179,8 +201,13 @@
 <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
 <script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script>
+//csv
+//shapefile
+
 responseTimes = {} //keeps track of response times
 responseTimes['climateLoad'] = []
+
+var markers= []
 
 returnedData = {} // object of all data points returned from the server --> indexed by callID
 
@@ -220,151 +247,199 @@ $(document).ready(function(){
 	
 	//populate the drop down menus
 	
-		//get data sources
-	$.ajax({
-		url: "getAllSources",
-		beforeSend: function(){
-			log("Getting data sources from server.")
+	function loadTimeslices(idNum){
+		$.ajax({
+		url: "getAllTimes",
+		beforeSend:function(){
+			log("Getting timeslices from server.")
 		},
+		dataType: "json",
 		error: function(error){
-			log("Fatal error getting data sources.  Check console.", 'log-fatal')
+			log('Fatal error getting timeslices. Check Console.', "log-fatal")
 			console.log(error)
 		},
-		dataType: 'json',
 		success: function(result){
-			if (result['success']){
-				var requestEnd = new Date().getTime();
-				var requestTime = requestEnd - pageStart
-				responseTimes['sourceLoad'] = requestTime
-				$("#sourceResponseText").text(requestTime)
-				$("#sourceResponseText").text(requestTime)
-				if (requestTime < 40){
-					$("#sourceResponseText").addClass('log-success')
+			if(result['success']){
+					var requestEnd = new Date().getTime();
+					var requestTime = requestEnd - pageStart;
+					responseTimes['timeLoad'] = requestTime
+					$("#timeResponseText").text(requestTime) 
+					if (requestTime < 40){
+						$("#timeResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#timeResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#timeResponseText").addClass('log-warning')
+					}
+					data= result['data']
+					numSlices = data.length
+					log("Got " + numSlices + ' timeslices from server. Request took ' + requestTime + " ms.", 'log-success')
+					for (var t=0; t<numSlices; t++){
+						if (+data[t] != 0){
+							$("#timeSelect" + idNum ).append("<option>" + data[t] + "</option>")
+							
+						}
+						
+					}
+				}else{
+					log("Error getting timeslices.  Server says: " + result['message'], 'log-warning')
 				}
-				else if (requestTime > 39 && requestTime < 50){
-					$("#sourceResponseText").addClass('log-med')
-				}else if (requestTime > 49){
-					$("#sourceResponseText").addClass('log-warning')
-				}
-				data = result['data']
-				numVars = data.length
-				log("Got " + numVars + " data sources.  Request took " + requestTime + " ms." , "log-success")
-				for (var s=0; s<numVars; s++){
-					sourcename = data[s]
-					$(".sourceSelect").append("<option>" + sourcename + "</option>")
-				}
-			}else{
-				log("Failed to get data sources.  Server says: " + data['message'], "log-warning")
 			}
-		}
-	}) // end source ajax
+		})
+	}
 	
+	function loadSources(timeslice, idNum){
+		$("#sourceSelect" + idNum).empty()
+		$("#sourceSelect" + idNum).append("<option>---Select---</option>")
+		//get data sources
+		var sourceStart = new Date().getTime()
+		$.ajax({
+			url: "getAllSources",
+			data: {
+				timeslice: timeslice
+			},
+			beforeSend: function(){
+				log("Getting data sources from server.")
+			},
+			error: function(error){
+				log("Fatal error getting data sources.  Check console.", 'log-fatal')
+				console.log(error)
+			},
+			dataType: 'json',
+			success: function(result){
+				if (result['success']){
+					var requestEnd = new Date().getTime();
+					var requestTime = requestEnd - sourceStart
+					responseTimes['sourceLoad'] = requestTime
+					$("#sourceResponseText").text(requestTime)
+					if (requestTime < 40){
+						$("#sourceResponseText").addClass('log-success')
+					}
+					else if (requestTime > 39 && requestTime < 50){
+						$("#sourceResponseText").addClass('log-med')
+					}else if (requestTime > 49){
+						$("#sourceResponseText").addClass('log-warning')
+					}
+					data = result['data']
+					numVars = data.length
+					log("Got " + numVars + " data sources.  Request took " + requestTime + " ms." , "log-success")
+					for (var s=0; s<numVars; s++){
+						sourcename = data[s]
+						$("#sourceSelect" + idNum).append("<option>" + sourcename + "</option>")
+					}
+				}else{
+					log("Failed to get data sources.  Server says: " + data['message'], "log-warning")
+				}
+			}
+		}) // end source ajax
+	}
 	
-	// //get variables corresponding with the selected datasources
+	function loadVars(dataSource, timeslice, idNum){
+		//empty the <select> first
+		$("#varSelect" + idNum).empty()
+		var varStart = new Date().getTime()
+				$.ajax({
+				url: "getAllVariables",
+				data: {
+					dataset: dataSource,
+					timeslice: timeslice
+				},
+				beforeSend: function(){
+					log("Getting climate variables from server.")
+				},
+				error: function(error){
+					log("Fatal error getting climate variables.  Check console.", "log-fatal")
+					console.log(error)
+				},
+				dataType: "json",
+				success: function(result){
+					if (result['success']){
+						//time the query
+						var requestEnd = new Date().getTime()
+						var requestTime = requestEnd - varStart
+						responseTimes['varLoad'] = requestTime
+						$("#varResponseText").text(requestTime)
+						if (requestTime < 40){
+							$("#varResponseText").addClass('log-success')
+						}
+						else if (requestTime > 39 && requestTime < 50){
+							$("#varResponseText").addClass('log-med')
+						}else if (requestTime > 49){
+							$("#varResponseText").addClass('log-warning')
+						}
+						data = result['data'];
+						numVars = data.length
+						log("Got " + numVars + " climate variables for data source " + dataSource + " for timeslice " + timeslice + ".  Request took " + requestTime + " ms.", 'log-success')
+						for (var v = 0; v< numVars; v++){
+							varname = data[v]
+							$("#varSelect" + idNum).append("<option>" + varname + "</option>")
+						}
+					}else{
+						log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
+						console.log(data)
+					}
+				}
+			}) // end variables ajax
+	}
 	
+	//UI for database controls
+	//hide var select on start
+	//load timeslices and sources for modern right away
+	//reload sources on timeslice change
+	//load vars for source/timeslice pair on source select change
 	$("#varSelect1").hide()
 	$("#varSelect2").hide()
+	//initial loading
+	//set 1
+	loadTimeslices(1)
+	loadTimeslices(2)
+	loadSources(0, 1) //load modern climate
+	loadSources(0, 2)
+	
+	//change on timeslice change
+	$("#timeSelect1").change(function(){
+		var t = $("#timeSelect1 option:selected").text()
+		if (t == "Modern"){
+			t = 0
+		}else{
+			t = +t
+		}
+		loadSources(t, 1)
+	})
+	$("#timeSelect2").change(function(){
+		var t = $("#timeSelect2 option:selected").text()
+		if (t == "Modern"){
+			t= 0
+		}else{
+			t = +t
+		}
+		loadSources(t, 2)
+	})
+	
+	//load variables on source change
 	$("#sourceSelect1").change(function(){
-		loadVars1()
-		$("#varSelect1").empty()
 		$("#varSelect1").show()
+		var source = $("#sourceSelect1 option:selected").text()
+		var timeslice = $("#timeSelect1 option:selected").text()
+		if (timeslice == "Modern"){
+			timeslice = 0
+		}else{
+			timeslice = +timeslice
+		}
+		loadVars(source, timeslice, 1)
 	})
 	$("#sourceSelect2").change(function(){
-		loadVars2()
-		$("#varSelect2").empty()
 		$("#varSelect2").show()
+		var source = $("#sourceSelect2 option:selected").text()
+		var timeslice = $("#timeSelect2 option:selected").text()
+		if (timeslice == "Modern"){
+			timeslice = 0
+		}else{
+			timeslice = +timeslice
+		}
+		loadVars(source, timeslice, 2)
 	})
-	
-	function loadVars1(){
-		datasource = $("#sourceSelect1 option:selected").text()
-			$.ajax({
-			url: "getAllVariables",
-			data: {
-				dataset: datasource
-			},
-			beforeSend: function(){
-				log("Getting climate variables from server.")
-			},
-			error: function(error){
-				log("Fatal error getting climate variables.  Check console.", "log-fatal")
-				console.log(error)
-			},
-			dataType: "json",
-			success: function(result){
-				if (result['success']){
-					//time the query
-					var requestEnd = new Date().getTime()
-					var requestTime = requestEnd - pageStart
-					responseTimes['varLoad'] = requestTime
-					$("#varResponseText").text(requestTime)
-					if (requestTime < 40){
-						$("#varResponseText").addClass('log-success')
-					}
-					else if (requestTime > 39 && requestTime < 50){
-						$("#varResponseText").addClass('log-med')
-					}else if (requestTime > 49){
-						$("#varResponseText").addClass('log-warning')
-					}
-					data = result['data'];
-					numVars = data.length
-					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
-					for (var v = 0; v< numVars; v++){
-						varname = data[v]
-						$("#varSelect1").append("<option>" + varname + "</option>")
-					}
-				}else{
-					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
-					console.log(data)
-				}
-			}
-		}) // end variables ajax
-	}//end load vars1
-	
-		function loadVars2(){
-		datasource = $("#sourceSelect2 option:selected").text()
-			$.ajax({
-			url: "getAllVariables",
-			data: {
-				dataset: datasource
-			},
-			beforeSend: function(){
-				log("Getting climate variables from server.")
-			},
-			error: function(error){
-				log("Fatal error getting climate variables.  Check console.", "log-fatal")
-				console.log(error)
-			},
-			dataType: "json",
-			success: function(result){
-				if (result['success']){
-					//time the query
-					var requestEnd = new Date().getTime()
-					var requestTime = requestEnd - pageStart
-					responseTimes['varLoad'] = requestTime
-					$("#varResponseText").text(requestTime)
-					if (requestTime < 40){
-						$("#varResponseText").addClass('log-success')
-					}
-					else if (requestTime > 39 && requestTime < 50){
-						$("#varResponseText").addClass('log-med')
-					}else if (requestTime > 49){
-						$("#varResponseText").addClass('log-warning')
-					}
-					data = result['data'];
-					numVars = data.length
-					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
-					for (var v = 0; v< numVars; v++){
-						varname = data[v]
-						$("#varSelect2").append("<option>" + varname + "</option>")
-					}
-				}else{
-					log("Failed to get climate variables.  Server says: " + data['message'], "log-warning")
-					console.log(data)
-				}
-			}
-		}) // end variables ajax
-	}//end load vars2
-
 	
 
 	
@@ -382,22 +457,33 @@ $(document).ready(function(){
 		var source1 = $("#sourceSelect1 option:selected").text()
 		var variable2 = $("#varSelect2 option:selected").text()
 		var source2 = $("#sourceSelect2 option:selected").text()
+		var timeslice1 = $("#timeSelect1 option:selected").text()
+		var timeslice2 = $("#timeSelect2 option:selected").text()
+		if (timeslice1 == "Modern"){
+			timeslice1 = 0
+		}
+		if (timeslice2 == "Modern"){
+			timeslice2 = 0
+		}
 		payload1 = {
 			latitude: latitude,
 			longitude: longitude,
 			datasource: source1,
-			variable: variable1
+			variable: variable1,
+			timeslice: timeslice1
 		}
 		payload2 = {
 			latitude: latitude,
 			longitude: longitude,
 			datasource: source2,
-			variable: variable2
+			variable: variable2,
+			timeslice: timeslice2
 		}
 		
 		//put a marker on the map for this lat/lng pair
 		popupText = "<b>" + latitude + "N" + "/" + longitude + "W" + "</b>"
 		var marker = L.marker([latitude, longitude]).addTo(map)
+		markers.push(marker)
 		var load1 = false
 		var load2 = false
 		var complete = false
@@ -420,28 +506,31 @@ $(document).ready(function(){
 				var requestTime = requestEnd - submitStart
 				responseTimes['climateLoad'].push(requestTime)
 				if (result['success']){
+	
 					data = result['data']
 					console.log(data)
 					log("Got climate data for payload #1.  Request took " + requestTime + " ms.", "log-success")
 					//put it in the table
 					str = "<tr><td>" + latitude + "</td><td>" + longitude + "</td><td>" + data['dataSource']
 					str += "</td><td>" + data['variable'] + "</td><td><b>" 
-					str += +data['value'] + "<b></td></tr>"
+					str += +data['value'] + "<b></td>"
+					str += "<td>" + timeslice1 + "</td></tr>"
 					$("#resultsTable").append(str)
 					popupText += "<p>" + data['variable'] + ": " + data['value'] 
 					load1 = true
-					if (variable1 != variable2){
 						graphingData = {
 							latitude: latitude,
 							longitude: longitude,
 							value: data['value'],
 							source: data['dataSource'],
 							variable: data['variable'],
+							timeslice: data['timeslice'],
 							callID: callID
 						}
+						console.log('This is graphing data #1')
+						console.log(graphingData)
 						returnedData[callID].push(graphingData)
 						
-					}
 				}else{
 					log("Failed to get climate data for payload #1.  Server says: " + data['message'], "log-warning")
 				}
@@ -471,25 +560,25 @@ $(document).ready(function(){
 					//put it in the table
 					str = "<tr class='resultRow'><td>" + latitude + "</td><td>" + longitude + "</td><td>" + data['dataSource']
 					str += "</td><td>" + data['variable'] + "</td><td><b>" 
-					str += +data['value'] + "<b></td></tr>"
+					str += +data['value'] + "<b></td><td>" + timeslice2 + "</td></tr>"
+					
 					$("#resultsTable").append(str)
 					popupText += "<p>" + data['variable'] + ": " + data['value'] 
 					//note that we completed this call
 					load2 = true
-					if (variable1 != variable2){
 						graphingData = {
 							latitude: latitude,
 							longitude: longitude,
 							value: data['value'],
 							source: data['dataSource'],
 							variable: data['variable'],
-							callID: callID
+							callID: callID,
+							timeslice: data['timeslice']
 							
 						}
+						console.log("This is graphing data #2")
+						console.log(graphingData)
 						returnedData[callID].push(graphingData)
-						
-						
-					}
 				}else{
 					log("Failed to get climate data for payload #2.  Server says: "+ data['message'], "log-warnning")
 				}
@@ -508,6 +597,8 @@ $(document).ready(function(){
 				//open the popup
 				marker.bindPopup(popupText)
 				marker.openPopup()
+				console.log("This is returned data1")
+				console.log(returnedData)
 				//do graphing
 				graphPoints()
 				//
@@ -524,7 +615,7 @@ $(document).ready(function(){
 		
 		//graphing function for all points selected in this session
 		function graphPoints(){
-			var margin = {top: 20, right: 20, bottom: 30, left: 40},
+			var margin = {top: 20, right: 20, bottom: 30, left: 60},
 			
 		    width = $("#graph").width() - margin.left - margin.right,
 		    height = $("#viz").height() - margin.top - margin.bottom;
@@ -536,13 +627,10 @@ $(document).ready(function(){
 			
 			variable1 = $("#varSelect1").val()
 			variable2 = $("#varSelect2").val()
-		
-			if (variable1 != variable2){
-				//consolidate into single obj for graphing
-				
-				points = []
-				console.log(points)
+			timeslice1 = $("#timeSelect1").val()
+			timeslice2 = $("#timeSelect2").val()
 				for (callID in returnedData){
+					console.log(callID)
 					if (returnedData[callID].length > 0){
 						newObj = {}
 						var1 = returnedData[callID][0]
@@ -553,6 +641,8 @@ $(document).ready(function(){
 						newObj.callID = var1.callID
 						newObj.source1 = var1.source
 						newObj.source2 = var2.source
+						newObj.timeslice1 = var1.timeslice
+						newObj.timeslice2 = var2.timeslice
 						//make sure the right variable is selected
 						if (variable1 == var1.variable){
 							newObj.variable1 = variable1
@@ -620,10 +710,13 @@ $(document).ready(function(){
 					              
 					          
 					              
-					console.log(d3.max(points, function(d){return +d.value1}))
-					console.log(d3.max(points, function(d){return +d.value2}))
-					xscale.domain([0, (1.25 * d3.max(points, function(d){return +d.value1}))])
-					yscale.domain([0, (1.25 * d3.max(points, function(d){return +d.value2}))])
+					xmin = (d3.min([0, d3.min(points, function(d){return +d.value1})]))
+					ymin = (d3.min([0, d3.min(points, function(d){return +d.value2})]))
+					xmax = (d3.max([0, (1.25 * d3.max(points, function(d){return +d.value1}))]))
+					ymax = (d3.max([0, (1.25 * d3.max(points, function(d){return +d.value2}))]))
+					console.log(xmin + " " + ymin)
+					xscale.domain([xmin, xmax])
+					yscale.domain([ymin, ymax])
 					
 					    // Add the X Axis
 				    svg.append("g")
@@ -635,7 +728,7 @@ $(document).ready(function(){
 					      .attr("x", width)
 					      .attr("y", -6)
 					      .style("text-anchor", "end")
-					      .text(variable1);
+					      .text(variable1 + " (  " + timeslice1 + " B.P.)");
 				        
 				       // Add the Y Axis
 				    svg.append("g")
@@ -647,7 +740,7 @@ $(document).ready(function(){
 					      .attr("y", 6)
 					      .attr("dy", ".71em")
 					      .style("text-anchor", "end")
-					      .text(variable2);
+					      .text(variable2 + "  (" + timeslice2 + " B.P.)");
 				     
 				     log("Axes drawn.  Adding points to graph.")
 				    
@@ -657,9 +750,10 @@ $(document).ready(function(){
 				    	.attr('r', 5)
 				    	.attr('cx', function(d){return xscale(+d.value1)})
 				    	.attr('cy', function(d){return yscale(+d.value2)})
-				    	.attr('fill', 'red')
+				    	.attr('fill', $("#colorChoice").val())
 				    	.attr('opacity', function(d){return +d.opacity})
 				    .on("mouseover", function(d) {
+				   
 					         tooltip.transition()
 					               .duration(200)
 					               .style("opacity", 1);
@@ -674,10 +768,6 @@ $(document).ready(function(){
 					               .style("opacity", 0);
 					      });
 				    			
-			}else{
-				$("#graph").append("<h5>Please select two different variables to enable graphing.</h5>")
-				log("Graphing not enabled because variables are the same.")
-			}
 		}//end graph function
 		
 		function graphPerformance(){
@@ -833,6 +923,11 @@ $(document).ready(function(){
 			}
 				returnedData = {};
 		})
+		
+	$("#toggleLog").click(function(){
+		$("#log").slideToggle();
+		$("#toggleLog").text("Show")
+	});
 	
 })//end document.ready
 

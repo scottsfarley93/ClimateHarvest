@@ -1,0 +1,62 @@
+<html>
+	<head>
+		<title>File Upload</title>
+						<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+	</head>
+	<body>
+		<h2 class='page-header'>Upload a csv file</h2>
+		<input type='file' id='fileUpload' name='fileUpload' />
+		<table id='results'>
+			
+		</table>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js"></script>
+<script>
+	
+	function fileHandle(evt){
+		var file = evt.target.files[0];
+		Papa.parse(file, {
+			header: true,
+			dynamicType: true,
+			complete: function(results){
+				data = results
+				var header = results.meta['fields']
+				var latAliases = ["X", "x", "Latitude", "latitude", "lat", "Lat", "LAT"]
+				var lngAliases = ["Y", 'y', "Longitude", "long", "longitude", "lng", "LNG", "LNG", "Long", "LONG"]
+				var latFieldName;
+				var lngFieldName;
+				for (var i = 0; i< header.length; i++){
+					h = header[i];
+					if ($.inArray(h, latAliases) != -1){
+						latFieldName = h
+					}
+					if ($.inArray(h, lngAliases) != -1){
+						lngFieldName = h
+					}
+				}
+				if (latFieldName == undefined || lngFieldName == undefined){
+					$("#results").append("<p>This is not a properly formatted file.</p>")
+				}else{
+					$("#results").append("<p>Ready to go!</p>")
+				}
+				for (var i = 0; i < data.length; i++){
+					i
+				}
+			}
+		})
+	}
+	$(document).ready(function(){
+		$("#fileUpload").change(fileHandle)
+	})
+	
+</script>
+	</body>
+</html>

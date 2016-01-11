@@ -18,15 +18,17 @@ def getConnection(host, username, password, database):
 ##establish connection
 connection = getConnection("localhost", "postgres" , "Sequoia93!", "climateHarvest")
 
-def ingest(connection, rasterOnDisk, dataSource,  varName, varCode, tileX, tileY):
+def ingest(connection, rasterOnDisk, dataSource,  varName, varCode, tileX, tileY, yearsBP):
     tableName = dataSource + "_" + varName + "_" + str(tileX) + "x" + str(tileY)
+    if yearsBP != 0:
+        tableName += "_" + str(yearsBP)
     print "Table name is: " , tableName
     ##prepare sql
     ##This sql goes into the vars table so we can lookup the raster table later
     ##Metadata
-    sql = 'INSERT INTO public.vars("varID", "dataSource", "variableCode", "variableName", "tileX", "tileY", "tableName", modified)'
+    sql = 'INSERT INTO public.vars("varID", "dataSource", "variableCode", "variableName", "tileX", "tileY", "tableName", modified, time)'
     sql += " VALUES (DEFAULT, '" + str(dataSource) + "', " + str(varCode) + ", '" + str(varName) + "', " + str(tileX) + ", "
-    sql += str(tileY) + ", '"  + str(tableName) + "', Default);"
+    sql += str(tileY) + ", '"  + str(tableName) + "', Default, " + str(yearsBP) + ");"
     print "Executing SQL: " , sql
     cursor = connection.cursor()
     cursor.execute(sql)
@@ -58,6 +60,6 @@ def ingest(connection, rasterOnDisk, dataSource,  varName, varCode, tileX, tileY
 #ingest(connection, "/Users/scottsfarley/downloads/alt_10m_bil/alt.bil", "WorldClim", "Altitude", -1, 100, 100)
 
 for i in range(1, 20):
-    rName = "/Users/scottsfarley/downloads/bio_10m_bil/bio" + str(i) + ".bil"
+    rName = "/Users/scottsfarley/downloads/cclgmbi_10m/cclgmbi" + str(i) + ".tif"
     varName = "BioClim" + str(i)
-    ingest(connection, rName, "WorldClim", varName, -1, 100, 100)
+    ingest(connection, rName, "WorldClim", varName, -1, 100, 100, 22000)

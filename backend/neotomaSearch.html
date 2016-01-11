@@ -99,7 +99,7 @@ body{
 	<h1 class='page-header'>
 		Neotoma Query 
 	</h1>
-	<i>Switch to: </i><a href="index">  X/Y Query  </a>
+	<i>Switch to: </i><a href="index">  X/Y Query  </a> | <a href='map'>Point & Click</a>
 	<div id='controls1' class='row'>
 		<div class='col-xs-6'>
 		<h4>Site Search Controls</h4>
@@ -144,6 +144,7 @@ body{
 		</div>
 		<div class='col-xs-3'>
 		<h5>Variable 2</h5>
+		
 		<label for='sourceSelect2'>Data source: </label><br />
 		<select id='sourceSelect2'>
 			<option>---Select---</option>
@@ -275,7 +276,8 @@ $(document).ready(function(){
 		}
 	})//end source request ajax
 	
-		
+
+	
 	$("#varSelect1").hide()
 	$("#varSelect2").hide()
 	$("#sourceSelect1").change(function(){

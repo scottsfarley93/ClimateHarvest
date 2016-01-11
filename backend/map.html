@@ -1,0 +1,134 @@
+<html>
+	<head>
+		<title>Map | Climate Harvest</title>
+		<style>
+			#map{
+				height: 50%;
+				width: 50%;
+				text-align: center;
+			}
+	tr:nth-child(even) {background-color: #f2f2f2}
+	
+	td{
+		width: 10%;
+	}
+	body{
+		margin-left: 10%;
+		padding-left: 5%;
+	}
+	i{
+		margin-bottom: 5%;
+	}
+		</style>
+				<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+	</head>
+	<body>
+		<h2 class='page-header'>Point and Click</h2>
+		<h5>Click a point on the map for a listing of all climate variables in the database.</h5>
+		<i>Switch to: </i><a href="neotomaQuery">  Neotoma Query  </a> | <a href='index'>X/ Y Query</a>
+		<hr>
+		<div id='map'>
+			
+		</div>
+		<div class='container' id='resultsHolder'>
+			<button class='glyphicon glyphicon-download' id='download'></button>
+			<table id='resultsTable'>
+				<tr><th>Latitude</th><th>Longitude</th><th>Years BP</th><th>Data Source</th><th>Variable</th><th>Value</th></tr>
+				
+			</table>
+		</div>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+	$(document).ready(function(){
+			// initialize the map
+			var map = L.map('map').setView([39.5, -98.5], 3);
+		
+			L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+			    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+			}).addTo(map);
+			
+			var markers = []
+			
+			map.on('click', function(e) {
+				//add a marker
+				for (var i=0; i<markers.length; i++){
+					marker = markers[i]
+					map.removeLayer(marker)
+				}
+				marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+				marker.bindPopup("<p>Latitude: " + e.latlng.lat + "</p><p>Longitude: " + e.latlng.lng + "</p>")
+					.openPopup();
+				markers.push(marker)
+				var requestStart = new Date().getTime()
+			    $(".resultsRow").remove()
+			    $.ajax({
+			    	url: "queryAllLayers",
+			    	data: {
+			    		latitude: e.latlng.lat,
+			    		longitude: e.latlng.lng
+			    	},
+			    	dataType: "json",
+			    	error: function(error){
+			    		console.log(error)
+			    	},
+			    	success: function(results){
+			    		console.log("Got response from server.")
+			    		var requestEnd = new Date().getTime()
+			    		var requestTime = requestEnd - requestStart
+			    		console.log("Query took " + requestTime + " ms")
+			    		if (results['success']){
+			    			var data = results['data']
+			    			for (var i=0; i<data.length; i++){
+			    				var item = data[i]
+			    				var str = "<tr class='resultsRow'><td>" + e.latlng.lat + "</td><td>" + e.latlng.lng + "</td><td>" + item.timeslice 
+			    				str += "</td><td>" + item.source + "</td><td>" + item.variable + "</td><td>" + item.value + "</td></tr>"
+			    				$("#resultsTable").append(str)
+			    			}
+			    		}else{
+			    			alert("Did not recieve success message from server.")
+			    		}
+			    	}
+			    })
+		});
+		
+		//download csv on button click
+		$("#download").click(function(){
+			//get the data into proper format
+			csv = []
+			table = $("#resultsTable")
+			table = table.children()
+			tableRows = $(table[0]).children()
+			for (var i =0; i< tableRows.length; i++){
+				rowData = []
+				row = $(tableRows[i]).children()
+				for (var j =0 ; j<row.length; j++){
+					cellValue = $(row[j]).text()
+					rowData.push(cellValue)
+				}
+				csv.push(rowData)
+			}//end loop
+			//all the data is in the array so now prepare the array
+			var csvContent = "data:text/csv;charset=utf-8,"
+			var csvOut = csv.map(function(d){
+				   return JSON.stringify(d);
+				})
+				.join('\n') 
+				.replace(/(^\[)|(\]$)/mg, ''); // remove opening [ and closing ] brackets from each line 
+			csvContent += csvOut
+			var encodedUri = encodeURI(csvContent);
+			window.open(encodedUri);
+		})
+		
+	})	
+	
+</script>
+	</body>
+</html>
