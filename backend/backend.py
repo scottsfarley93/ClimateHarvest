@@ -199,14 +199,16 @@ def getVariables(connection, source, timeslice):
     if source is not None or timeslice is not None:
         sql += " WHERE "
     if source is not None:
-        sql += ''' "dataSource'='''
+        sql += ''' "dataSource"='''
+        sql += "'"
         sql += str(source)
         if timeslice is not None:
-            sql += " AND "
+            sql += "' AND "
     if timeslice is not None:
         sql += ''' "time"='''
         sql += str(timeslice)
     sql += ' ORDER BY "variableName"'
+    print sql
     try:
         cursor = connection.cursor()
         cursor.execute(sql)
@@ -487,6 +489,27 @@ class Root:
         out['meta']['message'] = "This service contains no resource named " + str(args[0])
         return str(json.dumps(out))
 
+##bug fix
+class Index:
+    exposed = True
+    def GET(self, *args, **kwargs):
+        return open("index.html")
+
+
+class NeotomaSearch:
+    exposed = True
+    def GET(self, *args, **kwargs):
+        return open("neotomaSearch.html")
+
+class Map:
+    exposed = True
+    def GET(self, *args, **kwargs):
+        return open("map.html")
+
+class GraphView:
+    exposed = True
+    def GET(self, *args, **kwargs):
+        return open("graphView.html")
 
 
 
@@ -524,6 +547,30 @@ if __name__ == '__main__':
     )
     cherrypy.tree.mount(
         Root(), '/api',
+        {'/':
+            {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}
+        }
+    )
+    cherrypy.tree.mount(
+        Index(), '/index',
+        {'/':
+            {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}
+        }
+    )
+    cherrypy.tree.mount(
+        Map(), '/map',
+        {'/':
+            {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}
+        }
+    )
+    cherrypy.tree.mount(
+        NeotomaSearch(), '/neotomaQuery',
+        {'/':
+            {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}
+        }
+    )
+    cherrypy.tree.mount(
+        GraphView(), '/graph',
         {'/':
             {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}
         }

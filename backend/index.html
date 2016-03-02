@@ -249,7 +249,7 @@ $(document).ready(function(){
 	
 	function loadTimeslices(idNum){
 		$.ajax({
-		url: "getAllTimes",
+		url: "api/timeslices",
 		beforeSend:function(){
 			log("Getting timeslices from server.")
 		},
@@ -259,6 +259,7 @@ $(document).ready(function(){
 			console.log(error)
 		},
 		success: function(result){
+			console.log(result)
 			if(result['success']){
 					var requestEnd = new Date().getTime();
 					var requestTime = requestEnd - pageStart;
@@ -276,8 +277,8 @@ $(document).ready(function(){
 					numSlices = data.length
 					log("Got " + numSlices + ' timeslices from server. Request took ' + requestTime + " ms.", 'log-success')
 					for (var t=0; t<numSlices; t++){
-						if (+data[t] != 0){
-							$("#timeSelect" + idNum ).append("<option>" + data[t] + "</option>")
+						if (+data[t].timeslice != 0){
+							$("#timeSelect" + idNum ).append("<option>" + data[t].timeslice + "</option>")
 							
 						}
 						
@@ -295,12 +296,13 @@ $(document).ready(function(){
 		//get data sources
 		var sourceStart = new Date().getTime()
 		$.ajax({
-			url: "getAllSources",
+			url: "api/sources",
 			data: {
 				timeslice: timeslice
 			},
 			beforeSend: function(){
 				log("Getting data sources from server.")
+				console.log(this.url)
 			},
 			error: function(error){
 				log("Fatal error getting data sources.  Check console.", 'log-fatal')
@@ -308,6 +310,7 @@ $(document).ready(function(){
 			},
 			dataType: 'json',
 			success: function(result){
+				console.log(result)
 				if (result['success']){
 					var requestEnd = new Date().getTime();
 					var requestTime = requestEnd - sourceStart
@@ -325,7 +328,8 @@ $(document).ready(function(){
 					numVars = data.length
 					log("Got " + numVars + " data sources.  Request took " + requestTime + " ms." , "log-success")
 					for (var s=0; s<numVars; s++){
-						sourcename = data[s]
+						sourcename = data[s]['sourceName']
+						console.log(sourcename)
 						$("#sourceSelect" + idNum).append("<option>" + sourcename + "</option>")
 					}
 				}else{
@@ -340,13 +344,14 @@ $(document).ready(function(){
 		$("#varSelect" + idNum).empty()
 		var varStart = new Date().getTime()
 				$.ajax({
-				url: "getAllVariables",
+				url: "api/variables",
 				data: {
-					dataset: dataSource,
-					timeslice: timeslice
+					timeslice: timeslice,
+					source: dataSource,
 				},
 				beforeSend: function(){
 					log("Getting climate variables from server.")
+					console.log(this.url)
 				},
 				error: function(error){
 					log("Fatal error getting climate variables.  Check console.", "log-fatal")
@@ -354,6 +359,7 @@ $(document).ready(function(){
 				},
 				dataType: "json",
 				success: function(result){
+					console.log(result)
 					if (result['success']){
 						//time the query
 						var requestEnd = new Date().getTime()
@@ -372,7 +378,7 @@ $(document).ready(function(){
 						numVars = data.length
 						log("Got " + numVars + " climate variables for data source " + dataSource + " for timeslice " + timeslice + ".  Request took " + requestTime + " ms.", 'log-success')
 						for (var v = 0; v< numVars; v++){
-							varname = data[v]
+							varname = data[v].variableName
 							$("#varSelect" + idNum).append("<option>" + varname + "</option>")
 						}
 					}else{
@@ -468,14 +474,14 @@ $(document).ready(function(){
 		payload1 = {
 			latitude: latitude,
 			longitude: longitude,
-			datasource: source1,
+			source: source1,
 			variable: variable1,
 			timeslice: timeslice1
 		}
 		payload2 = {
 			latitude: latitude,
 			longitude: longitude,
-			datasource: source2,
+			source: source2,
 			variable: variable2,
 			timeslice: timeslice2
 		}
@@ -490,7 +496,7 @@ $(document).ready(function(){
 		$("submit").prop('disabled', 'true')
 		//do two ajax calls, one for each variable/source pair
 		$.ajax({
-			url: "getData",
+			url: "api/data",
 			data: payload1,
 			dataType: "json",
 			beforeSend: function(){
@@ -507,8 +513,9 @@ $(document).ready(function(){
 				responseTimes['climateLoad'].push(requestTime)
 				if (result['success']){
 	
-					data = result['data']
-					console.log(data)
+					data = result['data'][0]
+					
+					console.log(data['dataSource'])
 					log("Got climate data for payload #1.  Request took " + requestTime + " ms.", "log-success")
 					//put it in the table
 					str = "<tr><td>" + latitude + "</td><td>" + longitude + "</td><td>" + data['dataSource']
@@ -523,7 +530,7 @@ $(document).ready(function(){
 							longitude: longitude,
 							value: data['value'],
 							source: data['dataSource'],
-							variable: data['variable'],
+							variable: data['varName'],
 							timeslice: data['timeslice'],
 							callID: callID
 						}
@@ -539,22 +546,24 @@ $(document).ready(function(){
 		
 		//get data2
 		$.ajax({
-			url: "getData",
+			url: "api/data",
 			data: payload2,
 			dataType: "json",
 			beforeSend: function(){
 				log("Sending second request for data to server.")
+				console.log(this.url)
 			},
 			error: function(error){
 				log("Server error getting data. Check console.", "log-fatal")
 				console.log(error)
 			},
 			success: function(result){
+				console.log(result)
 				var requestEnd = new Date().getTime()
 				var requestTime = requestEnd - submitStart
 				responseTimes['climateLoad'].push(requestTime)
 				if (result['success']){
-					data= result['data']
+					data= result['data'][0]
 					console.log(data)
 					log("Got climate data for payload #2. Request took " + requestTime + " ms.", "log-success")
 					//put it in the table
