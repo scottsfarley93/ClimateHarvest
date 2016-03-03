@@ -70,7 +70,7 @@
 				var requestStart = new Date().getTime()
 			    $(".resultsRow").remove()
 			    $.ajax({
-			    	url: "queryAllLayers",
+			    	url: "api/data",
 			    	data: {
 			    		latitude: e.latlng.lat,
 			    		longitude: e.latlng.lng
@@ -88,8 +88,9 @@
 			    			var data = results['data']
 			    			for (var i=0; i<data.length; i++){
 			    				var item = data[i]
+			    				console.log(item)
 			    				var str = "<tr class='resultsRow'><td>" + e.latlng.lat + "</td><td>" + e.latlng.lng + "</td><td>" + item.timeslice 
-			    				str += "</td><td>" + item.source + "</td><td>" + item.variable + "</td><td>" + item.value + "</td></tr>"
+			    				str += "</td><td>" + item.dataSouce + "</td><td>" + item.varName + "</td><td>" + item.value + "</td></tr>"
 			    				$("#resultsTable").append(str)
 			    			}
 			    		}else{

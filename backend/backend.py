@@ -202,8 +202,9 @@ def getVariables(connection, source, timeslice):
         sql += ''' "dataSource"='''
         sql += "'"
         sql += str(source)
+        sql += "'"
         if timeslice is not None:
-            sql += "' AND "
+            sql += " AND "
     if timeslice is not None:
         sql += ''' "time"='''
         sql += str(timeslice)

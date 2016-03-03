@@ -248,7 +248,7 @@ $(document).ready(function(){
 
 	
 	$.ajax({
-		url: "getAllSources",
+		url: "api/sources",
 		dataType: "json",
 		beforeSend:function(){
 			log("Requesting data sources from server.")
@@ -266,8 +266,8 @@ $(document).ready(function(){
 				log("Got " + numSources + " data sources from server.  Request took " + requestTime + " ms.", 'log-success')
 				responseTimes['sourcesLoad'] = requestTime
 				for (var i=0; i< numSources; i++){
-					$("#sourceSelect1").append("<option>" + data[i] + "</option>")
-					$("#sourceSelect2").append("<option>" + data[i] + "</option>")
+					$("#sourceSelect1").append("<option>" + data[i]['sourceName'] + "</option>")
+					$("#sourceSelect2").append("<option>" + data[i]['sourceName'] + "</option>")
 				}
 				$("#sourceLoadText").text(requestTime)
 			}else{
@@ -294,12 +294,13 @@ $(document).ready(function(){
 	function loadVars1(){
 		datasource = $("#sourceSelect1 option:selected").text()
 			$.ajax({
-			url: "getAllVariables",
+			url: "api/variables",
 			data: {
-				dataset: datasource
+				source: datasource
 			},
 			beforeSend: function(){
 				log("Getting climate variables from server.")
+				console.log(this.url)
 			},
 			error: function(error){
 				log("Fatal error getting climate variables.  Check console.", "log-fatal")
@@ -308,6 +309,7 @@ $(document).ready(function(){
 			dataType: "json",
 			success: function(result){
 				if (result['success']){
+					console.log(result)
 					//time the query
 					var requestEnd = new Date().getTime()
 					var requestTime = requestEnd - pageStart
@@ -322,10 +324,12 @@ $(document).ready(function(){
 						$("#varResponseText").addClass('log-warning')
 					}
 					data = result['data'];
+					console.log(data)
 					numVars = data.length
 					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
 					for (var v = 0; v< numVars; v++){
-						varname = data[v]
+						varname = data[v].variableName
+						console.log(varname)
 						$("#varSelect1").append("<option>" + varname + "</option>")
 					}
 				}else{
@@ -339,9 +343,9 @@ $(document).ready(function(){
 		function loadVars2(){
 		datasource = $("#sourceSelect2 option:selected").text()
 			$.ajax({
-			url: "getAllVariables",
+			url: "api/variables",
 			data: {
-				dataset: datasource
+				source: datasource
 			},
 			beforeSend: function(){
 				log("Getting climate variables from server.")
@@ -370,7 +374,7 @@ $(document).ready(function(){
 					numVars = data.length
 					log("Got " + numVars + " climate variables for data source " + datasource + ".  Request took " + requestTime + " ms.", 'log-success')
 					for (var v = 0; v< numVars; v++){
-						varname = data[v]
+						varname = data[v].variableName
 						$("#varSelect2").append("<option>" + varname + "</option>")
 					}
 				}else{
@@ -548,14 +552,14 @@ $(document).ready(function(){
 					var pointID = i 
 					//do two ajax calls one for each var/source pair
 					$.ajax({
-						url: "getData",
+						url: "api/data",
 						dataType: "json",
 						async: false,
 						data: {
 							latitude: lat,
 							longitude: lng,
 							variable: var1,
-							datasource: source1
+							source: source1
 						},
 						error: function(error){
 							console.log(error)
@@ -564,7 +568,7 @@ $(document).ready(function(){
 							var responseEnd = new Date().getTime()
 							var responseTime = responseEnd - iterStart
 							responseTimes['climateLoad'].push(responseTime)
-							var responseData = result['data']
+							var responseData = result['data'][0]
 							var value = responseData['value']
 							newObj = {
 								latitude: lat,
@@ -582,7 +586,7 @@ $(document).ready(function(){
 					}) //end ajax 1
 					
 					$.ajax({
-						url: "getData",
+						url: "api/data",
 						dataType: "json",
 						data: {
 							latitude: lat,
@@ -598,7 +602,7 @@ $(document).ready(function(){
 							var responseEnd = new Date().getTime()
 							var responseTime = responseEnd - iterStart
 							responseTimes['climateLoad'].push(responseTime)
-							var responseData = result['data']
+							var responseData = result['data'][0]
 							var value = responseData['value']
 							newObj = {
 								latitude: lat,
@@ -671,7 +675,7 @@ $(document).ready(function(){
 			variable2 = $("#varSelect2").val()
 			
 			console.log(variable1 + ' ' + variable2 )
-		
+			
 			if (variable1 != variable2){
 				//consolidate into single obj for graphing
 				
@@ -679,6 +683,7 @@ $(document).ready(function(){
 				numReturned = ObjectLength(climateData)
 				for (var call = 1; call<=numReturned; call++){
 					callData = climateData[call]
+					console.log(callData)
 					if (callData != undefined){
 						callData = callData.sort(sortByID)
 						for (var i=0; i< callData.length - 1; i = i + 2){//-1 so that we can do +1 index
@@ -687,26 +692,33 @@ $(document).ready(function(){
 							newObj = {
 								latitude : point1.latitude,
 								longitude : point1.longitude,
-								callID : point1.call,
+								callID : point1.callID,
 								source1: point1.source,
 								source2: point2.source,
 								siteName: point1.siteName,
 								siteID: point1.siteID
 							}
+
+
 							if (variable1 == point1.variable){
 								newObj.variable1 = variable1
-								newObj.value1 = point1.value
+								newObj.value1 = +point1.value
+								console.log("Fired1")
 							}else if(variable1 == point2.variable){
 								newObj.variable1 = variable1
-								newObj.value1 = point2.value
+								newObj.value1 = +point2.value
+								console.log("Fired2")
 							}
 							if (variable2 == point1.variable){
 								newObj.variable2 = variable2
-								newObj.value2 = point1.value
+								newObj.value2 = +point1.value
+								console.log("Fired3")
 							}else if(variable2 == point2.variable){
 								newObj.variable2 = variable2
-								newObj.value2 = point2.value
+								newObj.value2 = +point2.value
+								console.log("Fired4")
 							}
+							console.log(newObj.value1 + "," + newObj.value2)
 							
 							//see if this is the last in the array --> newest make it a different color
 							if (call == numReturned){
